@@ -1,0 +1,9 @@
+EmployeeID,Password,Role
+10001,admin123,Admin
+10002,user456,Regular
+10003,pass789,HR
+10004,it1234,IT
+10005,user123,Regular
+10006,cde123,Regular
+10007,efg123,Finance
+

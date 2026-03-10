@@ -1,0 +1,10 @@
+RequestId,EmployeeNumber,LeaveType,StartDate,EndDate,Status,Reason
+LR1001,10001,Sick,09-05-2022,09-06-2022,Approved,Severe Flu
+LR1002,10002,Vacation,10-10-2022,10-15-2022,Approved,Family Trip to Baguio
+LR1003,10005,Emergency,09-20-2022,09-21-2022,Rejected,Personal errands
+LR1004,10001,Vacation,12-20-2022,12-24-2022,Pending,Christmas Break
+LR1005,10010,Sick,09-15-2022,09-15-2022,Approved,Dental Checkup
+LR-6CCF,10002,Sick,12-20-1981,01-21-1982,Approved,sick
+LR-044C,10002,Sick,03-09-2026,03-10-2026,Approved,sick
+LR-030E,10005,Vacation,02-02-2026,03-06-2026,Rejected,leave
+LR-7E96,10002,Vacation,03-11-2026,03-13-2026,Approved,family matters
