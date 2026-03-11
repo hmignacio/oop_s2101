@@ -17,6 +17,10 @@ public class LeaveRequest {
     private String status;    // e.g., Pending, Approved, Rejected
     private String reason;
 
+    // Default Constructor
+    public LeaveRequest() {}
+
+    // Full Constructor
     public LeaveRequest(String requestId, String employeeNumber, String leaveType, 
                         String startDate, String endDate, String status, String reason) {
         this.requestId = requestId;
@@ -37,6 +41,28 @@ public class LeaveRequest {
     public String getStatus() { return status; }
     public String getReason() { return reason; }
 
-    // --- Setters (Used by Admin/HR to update status) ---
+    // --- Setters ---
+    public void setRequestId(String requestId) { this.requestId = requestId; }
+    public void setEmployeeNumber(String employeeNumber) { this.employeeNumber = employeeNumber; }
+    public void setLeaveType(String leaveType) { this.leaveType = leaveType; }
+    public void setStartDate(String startDate) { this.startDate = startDate; }
+    public void setEndDate(String endDate) { this.endDate = endDate; }
     public void setStatus(String status) { this.status = status; }
+    public void setReason(String reason) { this.reason = reason; }
+
+    /**
+     * Converts the object into a CSV-friendly string for saving.
+     */
+    @Override
+    public String toString() {
+        return String.join(",", 
+            requestId, 
+            employeeNumber, 
+            leaveType, 
+            startDate, 
+            endDate, 
+            status, 
+            reason
+        );
+    }
 }

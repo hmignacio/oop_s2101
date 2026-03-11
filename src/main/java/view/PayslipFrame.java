@@ -16,11 +16,19 @@ import java.awt.*;
 /**
  * Displays the detailed salary breakdown for a specific employee.
  */
+import model.Employee;
+import service.PayrollService;
+import utils.Constants; // Use your Constants for accuracy
+import javax.swing.*;
+import java.awt.*;
+import java.text.DecimalFormat;
+
 public class PayslipFrame extends JFrame {
     
     private Employee employee;
     private PayrollService payrollService;
     private double hoursWorked;
+    private DecimalFormat df = new DecimalFormat("#,##0.00");
 
     public PayslipFrame(Employee emp, double hours) {
         this.employee = emp;
@@ -30,103 +38,104 @@ public class PayslipFrame extends JFrame {
     }
 
     private void initUI() {
-        setTitle("MotorPH - Payslip: " + employee.getEmployeeNumber());
-        setSize(500, 650);
+        setTitle("MotorPH Official Payslip - " + employee.getEmployeeNumber());
+        setSize(450, 700);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // --- Header Section ---
-        JPanel header = new JPanel(new GridLayout(2, 1));
-        header.setBackground(new Color(25, 25, 112));
-        header.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
-
-        JLabel lblTitle = new JLabel("MOTORPH PAYROLL SYSTEM");
-        lblTitle.setForeground(Color.WHITE);
-        lblTitle.setFont(new Font("SansSerif", Font.BOLD, 20));
+        // 1. Calculations using Constants
+        double grossSalary = payrollService.calculateGrossSalary(employee, hoursWorked);
         
-        JLabel lblPeriod = new JLabel("Payroll Period: Monthly Summary");
-        lblPeriod.setForeground(Color.LIGHT_GRAY);
+        // Government Deductions based on 2026 rates
+        double sss = Math.min(grossSalary * Constants.SSS_RATE, Constants.SSS_MAX_CONTRIBUTION);
+        double philhealth = Math.min(grossSalary * Constants.PHILHEALTH_RATE, Constants.PHILHEALTH_MAX_CONTRIBUTION);
+        double pagibig = Math.min(grossSalary * Constants.PAGIBIG_RATE_HI, Constants.PAGIBIG_MAX_CONTRIBUTION);
+        
+        double totalDeductions = sss + philhealth + pagibig;
+        double taxableIncome = grossSalary - totalDeductions;
+        double tax = taxableIncome * Constants.TAX_RATE;
+        double netPay = grossSalary - totalDeductions - tax;
 
-        header.add(lblTitle);
-        header.add(lblPeriod);
-
-        // --- Main Content (The Breakdown) ---
+        // --- UI Construction ---
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setBorder(BorderFactory.createEmptyBorder(20, 30, 20, 30));
+        content.setBackground(Color.WHITE);
 
-        // Employee Info Section
+        // Header
+        JLabel lblHeader = new JLabel("MOTORPH PAYSLIP", JLabel.CENTER);
+        lblHeader.setFont(new Font("SansSerif", Font.BOLD, 22));
+        lblHeader.setAlignmentX(Component.CENTER_ALIGNMENT);
+        content.add(lblHeader);
+        content.add(Box.createRigidArea(new Dimension(0, 20)));
+
+        // Employee Info
         addDetail(content, "Employee Name:", employee.getFullName());
+        addDetail(content, "ID Number:", employee.getEmployeeNumber());
         addDetail(content, "Position:", employee.getPosition());
-        addDetail(content, "Hourly Rate:", "PHP " + employee.getHourlyRate());
-        addDetail(content, "Hours Worked:", String.format("%.2f", hoursWorked));
-        
         content.add(new JSeparator());
         content.add(Box.createRigidArea(new Dimension(0, 10)));
 
-        // Calculation Logic
-        double gross = payrollService.calculateGrossSalary(employee, hoursWorked);
-        double sss = 500.00; // Simplified for this example
-        double philhealth = gross * 0.03; 
-        double pagibig = 100.00;
-        double totalDeductions = sss + philhealth + pagibig;
-        double netPay = gross - totalDeductions;
-
-        // Earnings
-        JLabel lblEarnings = new JLabel("EARNINGS");
-        lblEarnings.setFont(new Font("SansSerif", Font.BOLD, 14));
-        content.add(lblEarnings);
-        addDetail(content, "Gross Salary:", "PHP " + String.format("%,.2f", gross));
+        // Earnings Section
+        addSectionHeader(content, "EARNINGS");
+        addDetail(content, "Basic Pay (Hours x Rate):", df.format(hoursWorked * employee.getHourlyRate()));
+        addDetail(content, "Rice Subsidy:", df.format(employee.getRiceSubsidy()));
+        addDetail(content, "Phone Allowance:", df.format(employee.getPhoneAllowance()));
+        addDetail(content, "Clothing Allowance:", df.format(employee.getClothingAllowance()));
+        addDetail(content, "TOTAL GROSS SALARY:", "PHP " + df.format(grossSalary));
         
         content.add(Box.createRigidArea(new Dimension(0, 15)));
-
-        // Deductions
-        JLabel lblDeductions = new JLabel("DEDUCTIONS");
-        lblDeductions.setFont(new Font("SansSerif", Font.BOLD, 14));
-        lblDeductions.setForeground(Color.RED);
-        content.add(lblDeductions);
-        addDetail(content, "SSS Contribution:", "PHP " + sss);
-        addDetail(content, "PhilHealth:", "PHP " + String.format("%.2f", philhealth));
-        addDetail(content, "Pag-IBIG:", "PHP " + pagibig);
-        
         content.add(new JSeparator());
-        
-        // Net Pay (The Big Number)
-        JLabel lblNet = new JLabel("NET TAKE-HOME PAY");
-        lblNet.setFont(new Font("SansSerif", Font.BOLD, 16));
-        lblNet.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        // Deductions Section
+        addSectionHeader(content, "DEDUCTIONS");
+        addDetail(content, "SSS Contribution:", df.format(sss));
+        addDetail(content, "PhilHealth:", df.format(philhealth));
+        addDetail(content, "Pag-IBIG:", df.format(pagibig));
+        addDetail(content, "Withholding Tax:", df.format(tax));
+        addDetail(content, "TOTAL DEDUCTIONS:", "PHP " + df.format(totalDeductions + tax));
+
         content.add(Box.createRigidArea(new Dimension(0, 20)));
-        content.add(lblNet);
+        
+        // Final Net Pay
+        JPanel netPanel = new JPanel(new BorderLayout());
+        netPanel.setBackground(new Color(240, 240, 240));
+        netPanel.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
+        JLabel lblNetLabel = new JLabel("NET TAKE-HOME PAY:");
+        lblNetLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+        JLabel lblNetValue = new JLabel("PHP " + df.format(netPay));
+        lblNetValue.setFont(new Font("SansSerif", Font.BOLD, 20));
+        lblNetValue.setForeground(new Color(0, 102, 0));
+        
+        netPanel.add(lblNetLabel, BorderLayout.WEST);
+        netPanel.add(lblNetValue, BorderLayout.EAST);
+        content.add(netPanel);
 
-        JLabel lblAmount = new JLabel("PHP " + String.format("%,.2f", netPay));
-        lblAmount.setFont(new Font("SansSerif", Font.BOLD, 28));
-        lblAmount.setForeground(new Color(34, 139, 34));
-        lblAmount.setAlignmentX(Component.CENTER_ALIGNMENT);
-        content.add(lblAmount);
-
-        // --- Footer Buttons ---
-        JPanel footer = new JPanel();
-        JButton btnPrint = new JButton("Print Payslip");
-        JButton btnClose = new JButton("Close");
-        footer.add(btnPrint);
-        footer.add(btnClose);
-
-        btnClose.addActionListener(e -> this.dispose());
-
-        add(header, BorderLayout.NORTH);
         add(new JScrollPane(content), BorderLayout.CENTER);
-        add(footer, BorderLayout.SOUTH);
+
+        // Footer
+        JButton btnClose = new JButton("Close");
+        btnClose.addActionListener(e -> dispose());
+        add(btnClose, BorderLayout.SOUTH);
+    }
+
+    private void addSectionHeader(JPanel panel, String title) {
+        JLabel label = new JLabel(title);
+        label.setFont(new Font("SansSerif", Font.BOLD, 12));
+        label.setForeground(Color.GRAY);
+        panel.add(label);
+        panel.add(Box.createRigidArea(new Dimension(0, 5)));
     }
 
     private void addDetail(JPanel panel, String label, String value) {
         JPanel row = new JPanel(new BorderLayout());
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        row.setOpaque(false);
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
         row.add(new JLabel(label), BorderLayout.WEST);
         JLabel val = new JLabel(value);
         val.setFont(new Font("SansSerif", Font.BOLD, 12));
         row.add(val, BorderLayout.EAST);
         panel.add(row);
-        panel.add(Box.createRigidArea(new Dimension(0, 5)));
     }
 }

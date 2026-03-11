@@ -1,0 +1,43 @@
+MOTORPH PAYROLL SUMMARY REPORT
+Period: July 2024
+------------------------------------------------------------
+ID         Name                      Gross Pay       Net Pay        
+------------------------------------------------------------
+10001      Manuel IV Garcia          43883.61        33176.50       
+10002      Antonio Lim               30696.22        23091.23       
+10003      Bianca Sofia Aquino       16077.29        12094.14       
+10004      Isabella Reyes            22904.61        17230.00       
+10005      Eduard Hernandez          15026.72        11303.85       
+10006      Andrea Mae Villanueva     16348.68        12298.30       
+10007      Brad San Jose             30739.19        23123.56       
+10008      Alice Romualdez           10942.05        8231.16        
+10009      Rosie Atienza             10296.96        7745.89        
+10010      Roderick Alvaro           26992.35        20304.99       
+10011      Anthony Salcedo           20038.31        15073.82       
+10012      Josie Lopez               22032.32        16573.81       
+10013      Martha Farala             6804.85         5118.95        
+10014      Leila Martinez            12031.14        9050.43        
+10015      Fredrick Romualdez        29140.53        21920.97       
+10016      Christian Mata            20890.89        15715.17       
+10017      Selena De Leon            10618.97        7988.12        
+10018      Allison San Jose          10634.02        7999.44        
+10019      Cydney Rosario            13480.03        10140.35       
+10020      Mark Bautista             14789.03        11125.05       
+10021      Darlene Lazaro            7936.42         5970.17        
+10022      Kolby Delos Santos        9802.53         7373.95        
+10023      Vella Santos              8361.67         6290.07        
+10024      Tomas Del Rosario         8455.42         6360.59        
+10025      Jacklyn Tolentino         14112.14        10615.86       
+10026      Percival Gutierrez        13379.58        10064.79       
+10027      Garfield Manalaysay       12576.69        9460.81        
+10028      Lizeth Villegas           9504.90         7150.06        
+10029      Carol Ramos               10950.98        8237.88        
+10030      Emelia Maceda             13381.81        10066.47       
+10031      Delia Aguilar             8861.68         6666.20        
+10032      John Rafael Castro        16233.73        12211.82       
+10033      Carlos Ian Martinez       15982.92        12023.15       
+10034      Beatriz Santos            20607.25        15501.80       
+------------------------------------------------------------
+                                     TOTAL PAYOUT: PHP 417299.34
+------------------------------------------------------------
+Generated on: 03-11-2026 19:06:01

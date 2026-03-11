@@ -16,203 +16,203 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 
 public class AdminUI extends mainMenuFunctions {
-    private EmployeeDao employeeDao;
-    private LeaveDao leaveDao;
-    private JTabbedPane tabbedPane;
-    private JTextField txtSearch;
     private JTable leaveTable;
+    private DefaultTableModel leaveModel;
+    private LeaveDao leaveDao;
+    private EmployeeDao employeeDao;
 
     public AdminUI() {
-        super("MotorPH - System Administrator Oversight");
-        this.employeeDao = new EmployeeDao();
+        super("MotorPH - Administrator Dashboard");
         this.leaveDao = new LeaveDao();
+        this.employeeDao = new EmployeeDao();
         initUI();
     }
 
     @Override
     protected void initUI() {
-        setLayout(new BorderLayout(10, 10));
+        setLayout(new BorderLayout(15, 15));
 
-        // --- 1. Top Header & Search Panel ---
-        JPanel topContainer = new JPanel(new GridLayout(2, 1));
-        
+        // --- 1. Header ---
         JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(new Color(44, 62, 80));
-        JLabel lblTitle = new JLabel("   ADMINISTRATIVE MASTER CONSOLE", JLabel.LEFT);
+        header.setBackground(new Color(25, 25, 112)); // Midnight Blue
+        header.setPreferredSize(new Dimension(0, 70));
+        
+        JLabel lblTitle = new JLabel("  Executive Oversight & Leave Approval", JLabel.LEFT);
         lblTitle.setForeground(Color.WHITE);
-        lblTitle.setFont(new Font("SansSerif", Font.BOLD, 16));
+        lblTitle.setFont(new Font("SansSerif", Font.BOLD, 22));
         header.add(lblTitle, BorderLayout.WEST);
+        add(header, BorderLayout.NORTH);
+
+        // --- 2. Center: Leave Approval Table (Full Access) ---
+        JPanel centerPanel = new JPanel(new BorderLayout());
+        centerPanel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createEtchedBorder(), "Pending Leave Requests", 0, 0, 
+                new Font("SansSerif", Font.BOLD, 14), new Color(25, 25, 112)));
         
-        JButton btnLogout = new JButton("Logout ");
-        btnLogout.addActionListener(e -> { this.dispose(); new LoginFrame().setVisible(true); });
-        header.add(btnLogout, BorderLayout.EAST);
-
-        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        searchPanel.setBorder(BorderFactory.createEtchedBorder());
-        txtSearch = new JTextField(20);
-        JButton btnSearch = new JButton("Find Employee ID");
-        searchPanel.add(new JLabel("Global Search: "));
-        searchPanel.add(txtSearch);
-        searchPanel.add(btnSearch);
-        
-        topContainer.add(header);
-        topContainer.add(searchPanel);
-        add(topContainer, BorderLayout.NORTH);
-
-        // --- 2. Central Tabbed Pane ---
-        tabbedPane = new JTabbedPane();
-        tabbedPane.addTab("HR Records", createHRView());
-        tabbedPane.addTab("Finance/Payroll", createFinanceView());
-        tabbedPane.addTab("IT Credentials", createITView());
-        tabbedPane.addTab("Leave Approvals", createLeaveApprovalView());
-
-        add(tabbedPane, BorderLayout.CENTER);
-
-        // --- 3. Search Logic ---
-        btnSearch.addActionListener(e -> performGlobalSearch());
-    }
-
-    // --- Leave Approval View ---
-    private JPanel createLeaveApprovalView() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
-        
-        String[] columns = {"Req ID", "Emp #", "Type", "Start (MM-DD-YYYY)", "End (MM-DD-YYYY)", "Status", "Reason"};
-        DefaultTableModel model = new DefaultTableModel(columns, 0) {
+        // Added "Reason" column to the array
+        String[] columns = {"Req ID", "Emp #", "Type", "Start", "End", "Status", "Reason"};
+        leaveModel = new DefaultTableModel(columns, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
-        leaveTable = new JTable(model);
+        
+        leaveTable = new JTable(leaveModel);
+        leaveTable.setRowHeight(25);
+        leaveTable.getTableHeader().setReorderingAllowed(false);
+        
+        // Adjust column width for Reason
+        leaveTable.getColumnModel().getColumn(6).setPreferredWidth(250);
+        
         refreshLeaveTable();
+        centerPanel.add(new JScrollPane(leaveTable), BorderLayout.CENTER);
 
-        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
+        // Action Buttons
+        JPanel approvalActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        JButton btnViewReason = new JButton("View Full Reason");
         JButton btnApprove = new JButton("Approve");
         JButton btnReject = new JButton("Reject");
+
+        // Styling Buttons
+        styleActionButton(btnViewReason, new Color(70, 130, 180));
+        styleActionButton(btnApprove, new Color(34, 139, 34));
+        styleActionButton(btnReject, new Color(178, 34, 34));
         
-        btnApprove.setBackground(new Color(34, 139, 34));
-        btnApprove.setForeground(Color.BLACK);
-        btnReject.setBackground(new Color(178, 34, 34));
-        btnReject.setForeground(Color.BLACK);
+        approvalActions.add(new JLabel("Process Selected Request: "));
+        approvalActions.add(btnViewReason);
+        approvalActions.add(new JLabel("|"));
+        approvalActions.add(btnApprove);
+        approvalActions.add(btnReject);
+        centerPanel.add(approvalActions, BorderLayout.SOUTH);
+        
+        add(centerPanel, BorderLayout.CENTER);
 
-        actionPanel.add(btnApprove);
-        actionPanel.add(btnReject);
+        // --- 3. Sidebar: Oversight Navigation (Read-Only Logic) ---
+        JPanel sidebar = new JPanel();
+        sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
+        sidebar.setPreferredSize(new Dimension(240, 0));
+        sidebar.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 0, 1, Color.LIGHT_GRAY),
+                BorderFactory.createEmptyBorder(15, 10, 15, 10)));
 
+        JButton btnOverseeHR = new JButton("Oversee HR Records");
+        JButton btnOverseeFinance = new JButton("Oversee Finance");
+        JButton btnOverseeIT = new JButton("Oversee IT Security");
+        JButton btnLogout = new JButton("Logout");
+
+        styleNavButton(btnOverseeHR);
+        styleNavButton(btnOverseeFinance);
+        styleNavButton(btnOverseeIT);
+        styleNavButton(btnLogout);
+
+        JLabel lblSidebar = new JLabel("MODULE OVERSIGHT");
+        lblSidebar.setFont(new Font("SansSerif", Font.BOLD, 12));
+        lblSidebar.setForeground(Color.GRAY);
+        
+        sidebar.add(lblSidebar);
+        sidebar.add(Box.createRigidArea(new Dimension(0, 15)));
+        sidebar.add(btnOverseeHR);
+        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
+        sidebar.add(btnOverseeFinance);
+        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
+        sidebar.add(btnOverseeIT);
+        sidebar.add(Box.createVerticalGlue());
+        sidebar.add(btnLogout);
+        add(sidebar, BorderLayout.WEST);
+
+        // --- 4. Listeners ---
+        btnViewReason.addActionListener(e -> showFullReason());
         btnApprove.addActionListener(e -> updateLeaveStatus("Approved"));
         btnReject.addActionListener(e -> updateLeaveStatus("Rejected"));
 
-        panel.add(new JScrollPane(leaveTable), BorderLayout.CENTER);
-        panel.add(actionPanel, BorderLayout.SOUTH);
-        
-        return panel;
+        btnOverseeHR.addActionListener(e -> {
+            HRUI hr = new HRUI();
+            hr.disableEditing(); // Hides management buttons
+            hr.setVisible(true);
+        });
+
+        btnOverseeFinance.addActionListener(e -> {
+            FinanceUI fin = new FinanceUI();
+            fin.setVisible(true);
+        });
+
+        btnOverseeIT.addActionListener(e -> {
+            ITUI it = new ITUI();
+            it.setReadOnly(); // Unmasks passwords but prevents changes
+            it.setVisible(true);
+        });
+
+        btnLogout.addActionListener(e -> { 
+            this.dispose(); 
+            new LoginFrame().setVisible(true); 
+        });
+    }
+
+    private void refreshLeaveTable() {
+        leaveModel.setRowCount(0);
+        List<LeaveRequest> requests = leaveDao.getAllRequests();
+        for (LeaveRequest lr : requests) {
+            // Only show Pending requests for Admin to action
+            if (lr.getStatus().equalsIgnoreCase("Pending")) {
+                leaveModel.addRow(new Object[]{
+                    lr.getRequestId(), 
+                    lr.getEmployeeNumber(), 
+                    lr.getLeaveType(), 
+                    lr.getStartDate(), 
+                    lr.getEndDate(), 
+                    lr.getStatus(),
+                    lr.getReason() // Now populated
+                });
+            }
+        }
     }
 
     private void updateLeaveStatus(String status) {
         int row = leaveTable.getSelectedRow();
         if (row != -1) {
-            String reqId = leaveTable.getValueAt(row, 0).toString();
-            if (leaveDao.updateStatus(reqId, status)) {
-                JOptionPane.showMessageDialog(this, "Request " + reqId + " " + status);
+            String id = leaveModel.getValueAt(row, 0).toString();
+            if (leaveDao.updateStatus(id, status)) {
+                JOptionPane.showMessageDialog(this, "Request successfully " + status);
                 refreshLeaveTable();
             }
         } else {
-            JOptionPane.showMessageDialog(this, "Please select a request first.");
+            JOptionPane.showMessageDialog(this, "Please select a leave request first.");
         }
     }
 
-    /**
-     * UPDATED: Correctly parses Strings to LocalDate before formatting for display
-     */
-    private void refreshLeaveTable() {
-        DefaultTableModel model = (DefaultTableModel) leaveTable.getModel();
-        model.setRowCount(0);
-        
-        // Formatter for the CSV data (adjust pattern if your CSV uses different separators)
-        DateTimeFormatter csvFormatter = DateTimeFormatter.ofPattern("MM-dd-yyyy");
-        // Formatter for UI display
-        DateTimeFormatter displayFormatter = DateTimeFormatter.ofPattern("MM-dd-yyyy");
-        
-        List<LeaveRequest> requests = leaveDao.getAllRequests();
-        for (LeaveRequest req : requests) {
-            String startDateStr;
-            String endDateStr;
+    private void showFullReason() {
+        int row = leaveTable.getSelectedRow();
+        if (row != -1) {
+            String empId = leaveModel.getValueAt(row, 1).toString();
+            String reason = leaveModel.getValueAt(row, 6).toString();
             
-            try {
-                // Parse the String from model into LocalDate
-                LocalDate startDate = LocalDate.parse(req.getStartDate(), csvFormatter);
-                LocalDate endDate = LocalDate.parse(req.getEndDate(), csvFormatter);
-                
-                // Format the LocalDate back into the desired display String
-                startDateStr = startDate.format(displayFormatter);
-                endDateStr = endDate.format(displayFormatter);
-            } catch (Exception e) {
-                // Fallback to raw string if parsing fails (e.g., legacy data in CSV)
-                startDateStr = req.getStartDate();
-                endDateStr = req.getEndDate();
-            }
-
-            model.addRow(new Object[]{
-                req.getRequestId(), 
-                req.getEmployeeNumber(), 
-                req.getLeaveType(),
-                startDateStr, 
-                endDateStr,
-                req.getStatus(), 
-                req.getReason()
-            });
+            JTextArea area = new JTextArea(reason);
+            area.setLineWrap(true);
+            area.setWrapStyleWord(true);
+            area.setEditable(false);
+            area.setBackground(null);
+            
+            JScrollPane scroll = new JScrollPane(area);
+            scroll.setPreferredSize(new Dimension(300, 150));
+            
+            JOptionPane.showMessageDialog(this, scroll, "Reason for Request (Emp ID: " + empId + ")", JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(this, "Please select a request to view reason.");
         }
     }
 
-    private void performGlobalSearch() {
-        String targetID = txtSearch.getText().trim();
-        if (targetID.isEmpty()) return;
-
-        JScrollPane scrollPane = (JScrollPane) tabbedPane.getSelectedComponent();
-        JTable currentTable = (JTable) scrollPane.getViewport().getView();
-        
-        boolean found = false;
-        for (int i = 0; i < currentTable.getRowCount(); i++) {
-            if (currentTable.getValueAt(i, 0).toString().equals(targetID)) {
-                currentTable.setRowSelectionInterval(i, i);
-                currentTable.scrollRectToVisible(currentTable.getCellRect(i, 0, true));
-                found = true;
-                break;
-            }
-        }
-        if (!found) JOptionPane.showMessageDialog(this, "ID " + targetID + " not found.");
+    private void styleNavButton(JButton b) {
+        b.setMaximumSize(new Dimension(220, 45));
+        b.setAlignmentX(Component.CENTER_ALIGNMENT);
+        b.setFocusPainted(false);
+        b.setFont(new Font("SansSerif", Font.PLAIN, 13));
     }
 
-    // --- Tab Creators (Read-Only) ---
-    private JScrollPane createHRView() {
-        String[] cols = {"ID", "Last Name", "First Name", "Position", "Status"};
-        DefaultTableModel model = new DefaultTableModel(cols, 0) {
-            @Override public boolean isCellEditable(int r, int c) { return false; }
-        };
-        JTable table = new JTable(model);
-        for (Employee e : employeeDao.getAllEmployees()) {
-            model.addRow(new Object[]{e.getEmployeeNumber(), e.getLastName(), e.getFirstName(), e.getPosition(), e.getStatus()});
-        }
-        return new JScrollPane(table);
-    }
-
-    private JScrollPane createFinanceView() {
-        String[] cols = {"ID", "Last Name", "Basic Salary", "Rice", "Phone", "Clothing"};
-        DefaultTableModel model = new DefaultTableModel(cols, 0) {
-            @Override public boolean isCellEditable(int r, int c) { return false; }
-        };
-        JTable table = new JTable(model);
-        for (Employee e : employeeDao.getAllEmployees()) {
-            model.addRow(new Object[]{e.getEmployeeNumber(), e.getLastName(), e.getBasicSalary(), e.getRiceSubsidy(), e.getPhoneAllowance(), e.getClothingAllowance()});
-        }
-        return new JScrollPane(table);
-    }
-
-    private JScrollPane createITView() {
-        String[] cols = {"ID", "System Role", "Last Login", "Account Status"};
-        DefaultTableModel model = new DefaultTableModel(cols, 0) {
-            @Override public boolean isCellEditable(int r, int c) { return false; }
-        };
-        return new JScrollPane(new JTable(model));
+    private void styleActionButton(JButton b, Color bg) {
+        b.setBackground(bg);
+        b.setForeground(Color.WHITE);
+        b.setOpaque(true);
+        b.setBorderPainted(false);
+        b.setFont(new Font("SansSerif", Font.BOLD, 12));
     }
 }

@@ -93,7 +93,7 @@ public class LeaveRequestFrame extends JFrame {
                 txtReason.getText()
             );
 
-            if (leaveDao.addRequest(req)) {
+            if (leaveDao.addLeaveRequest(req)) {
                 JOptionPane.showMessageDialog(this, "Leave Request Submitted Successfully!");
                 this.dispose();
             }

@@ -13,109 +13,65 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.time.format.DateTimeFormatter; // Added for date standardization
 
 public class LeaveDao {
     private final String csvFile = "src/main/java/resources/leaves.csv";
-    
-    // Centralized date format to ensure consistency across the system
-    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("MM-dd-yyyy");
 
     public List<LeaveRequest> getAllRequests() {
         List<LeaveRequest> list = new ArrayList<>();
-        File file = new File(csvFile);
-        if (!file.exists()) return list;
-
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+        try (BufferedReader br = new BufferedReader(new FileReader(csvFile))) {
             String line;
-            br.readLine(); // Skip header
+            br.readLine(); // Skip Header
             while ((line = br.readLine()) != null) {
-                String[] d = line.split(",");
-                if (d.length >= 7) {
-                    // Logic: Even if the model stores Strings, we ensure they are trimmed
+                String[] data = line.split(",");
+                if (data.length >= 7) {
                     list.add(new LeaveRequest(
-                        d[0].trim(), // RequestId
-                        d[1].trim(), // EmployeeNumber
-                        d[2].trim(), // LeaveType
-                        d[3].trim(), // StartDate
-                        d[4].trim(), // EndDate
-                        d[5].trim(), // Status
-                        d[6].trim()  // Reason
+                        data[0].trim(), data[1].trim(), data[2].trim(), 
+                        data[3].trim(), data[4].trim(), data[5].trim(), data[6].trim()
                     ));
                 }
             }
-        } catch (IOException e) { 
-            System.err.println("Error reading leaves CSV: " + e.getMessage());
-        }
+        } catch (IOException e) { return list; }
         return list;
     }
 
-    public List<LeaveRequest> getByEmployee(String empId) {
+    // This matches the call in RegularEmployeeUI
+    public boolean addLeaveRequest(LeaveRequest lr) {
+        try (PrintWriter pw = new PrintWriter(new FileWriter(csvFile, true))) {
+            pw.println(lr.toString());
+            return true;
+        } catch (IOException e) { return false; }
+    }
+
+    public List<LeaveRequest> getByEmployee(String empNo) {
         return getAllRequests().stream()
-                .filter(r -> r.getEmployeeNumber().equals(empId))
+                .filter(lr -> lr.getEmployeeNumber().equals(empNo))
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Update functional requirement: Overwrites the CSV with the updated status.
-     */
-    public boolean updateStatus(String reqId, String newStatus) {
+    public boolean updateStatus(String requestId, String newStatus) {
         List<String> lines = new ArrayList<>();
-        boolean found = false;
-
+        boolean updated = false;
         try (BufferedReader br = new BufferedReader(new FileReader(csvFile))) {
             String header = br.readLine();
-            if (header != null) lines.add(header); 
-
+            if (header != null) lines.add(header);
             String line;
             while ((line = br.readLine()) != null) {
-                String[] d = line.split(",");
-                if (d[0].equals(reqId)) {
-                    // Reconstruct line keeping the standardized date strings
-                    lines.add(String.format("%s,%s,%s,%s,%s,%s,%s", 
-                              d[0], d[1], d[2], d[3], d[4], newStatus, d[6]));
-                    found = true;
-                } else {
-                    lines.add(line);
+                String[] data = line.split(",");
+                if (data[0].trim().equals(requestId)) {
+                    data[5] = newStatus;
+                    updated = true;
                 }
+                lines.add(String.join(",", data));
             }
-        } catch (IOException e) {
-            return false;
-        }
+        } catch (IOException e) { return false; }
 
-        return found ? saveAll(lines) : false;
-    }
-
-    /**
-     * Add functional requirement: Saves new leaves in the MM-dd-yyyy format.
-     */
-    public boolean addRequest(LeaveRequest req) {
-        try (PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(csvFile, true)))) {
-            // Formatting dates before saving to CSV ensures the MM-dd-yyyy requirement is met
-            String line = String.format("%s,%s,%s,%s,%s,%s,%s",
-                    req.getRequestId(), 
-                    req.getEmployeeNumber(), 
-                    req.getLeaveType(),
-                    req.getStartDate(), // Assuming this is already formatted via the UI form
-                    req.getEndDate(), 
-                    req.getStatus(), 
-                    req.getReason());
-            out.println(line);
-            return true;
-        } catch (IOException e) {
-            return false;
+        if (updated) {
+            try (PrintWriter pw = new PrintWriter(new FileWriter(csvFile))) {
+                for (String l : lines) pw.println(l);
+                return true;
+            } catch (IOException e) { return false; }
         }
-    }
-
-    // Helper method to overwrite the file safely
-    private boolean saveAll(List<String> lines) {
-        try (PrintWriter pw = new PrintWriter(new FileWriter(csvFile))) {
-            for (String line : lines) {
-                pw.println(line);
-            }
-            return true;
-        } catch (IOException e) {
-            return false;
-        }
+        return false;
     }
 }

@@ -2,9 +2,18 @@ RequestId,EmployeeNumber,LeaveType,StartDate,EndDate,Status,Reason
 LR1001,10001,Sick,09-05-2022,09-06-2022,Approved,Severe Flu
 LR1002,10002,Vacation,10-10-2022,10-15-2022,Approved,Family Trip to Baguio
 LR1003,10005,Emergency,09-20-2022,09-21-2022,Rejected,Personal errands
-LR1004,10001,Vacation,12-20-2022,12-24-2022,Pending,Christmas Break
+LR1004,10001,Vacation,12-20-2022,12-24-2022,Rejected,Christmas Break
 LR1005,10010,Sick,09-15-2022,09-15-2022,Approved,Dental Checkup
 LR-6CCF,10002,Sick,12-20-1981,01-21-1982,Approved,sick
 LR-044C,10002,Sick,03-09-2026,03-10-2026,Approved,sick
 LR-030E,10005,Vacation,02-02-2026,03-06-2026,Rejected,leave
 LR-7E96,10002,Vacation,03-11-2026,03-13-2026,Approved,family matters
+LR-3ABA,10025,Sick,2026-03-12,2026-03-12,Pending
+REQ-4913,10034,Sick Leave,03-15-2026,03-15-2026,Rejected,dengue
+REQ-8605,10031,Vacation Leave,12-16-2026,12-17-2026,Rejected,basta
+REQ-36811,10008,Vacation Leave,02-01-2026,02-03-2026,Pending
+REQ-67342,10008,Vacation Leave,02-01-2026,02-02-2026,Approved,family
+REQ-74726,10008,Sick Leave,03-12-2026,03-12-2026,Pending,dengue
+REQ-81079,10018,Sick Leave,03-09-2026,03-10-2026,Pending,tooth ache
+REQ-27233,10027,Emergency Leave,03-12-2026,03-12-2026,Pending,me
+REQ-62965,10027,Vacation Leave,08-28-2026,09-23-2026,Rejected,gusto ko lang

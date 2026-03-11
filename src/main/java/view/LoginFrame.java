@@ -86,7 +86,7 @@ public class LoginFrame extends JFrame {
         loginButton = new JButton("Login");
         loginButton.setBounds(50, 220, 300, 45);
         loginButton.setBackground(new Color(25, 25, 112));
-        loginButton.setForeground(Color.BLACK);
+        loginButton.setForeground(Color.BLACK); // Set text to white for contrast
         loginButton.setFocusPainted(false);
         loginButton.setFont(new Font("SansSerif", Font.BOLD, 14));
         loginButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
@@ -130,36 +130,36 @@ public class LoginFrame extends JFrame {
 
     /**
      * Role-based redirection logic.
-     * Updated to ensure HR users reach the correct HR Portal.
+     * Ensures strict isolation between IT, HR, Finance, and Admin.
      */
     private void openDashboard(UserAccount account) {
         EmployeeDao empDao = new EmployeeDao();
         Employee emp = empDao.findById(account.getEmployeeNo());
 
-        // Logic check to ensure the employee actually exists in the employees.csv
+        // Basic check for non-Admin users to ensure profile exists
         if (emp == null && !account.getRole().equalsIgnoreCase("Admin")) {
-            JOptionPane.showMessageDialog(null, "Error: Employee data not found for this user.");
+            JOptionPane.showMessageDialog(null, "Error: Profile data missing for ID " + account.getEmployeeNo());
             return;
         }
 
         String role = account.getRole();
 
+        // STRICT ROLE ROUTING
         if (role.equalsIgnoreCase("Admin")) {
             new AdminUI().setVisible(true);
         } 
         else if (role.equalsIgnoreCase("HR")) {
-            // FIX: Point this to HRUI instead of AdminUI
             new HRUI().setVisible(true); 
         } 
         else if (role.equalsIgnoreCase("IT")) {
+            // IT users get only the IT Management Portal
             new ITUI().setVisible(true);
         } 
-        // --- ADD THE FINANCE CASE HERE ---
         else if (role.equalsIgnoreCase("Finance")) {
             new FinanceUI().setVisible(true);
         }
         else {
-            // Launch the Regular Portal with the specific Employee object
+            // Regular employees see only their specific self-service portal
             new RegularEmployeeUI(emp).setVisible(true);
         }
     }

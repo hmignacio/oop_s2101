@@ -13,13 +13,17 @@ import model.UserAccount;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.util.ArrayList;
 import java.util.List;
 
 public class ITUI extends mainMenuFunctions {
     private JTable userTable;
     private DefaultTableModel tableModel;
     private LoginDao loginDao;
+    
+    // Class-level fields to allow Read-Only access
+    private JButton btnResetPass;
+    private JButton btnChangeRole;
+    private JLabel lblTitle;
 
     public ITUI() {
         super("MotorPH - IT System Administration");
@@ -31,63 +35,85 @@ public class ITUI extends mainMenuFunctions {
     protected void initUI() {
         setLayout(new BorderLayout(15, 15));
 
-        // --- Header Section ---
+        // --- 1. Header Section ---
         JPanel header = new JPanel(new BorderLayout());
         header.setBackground(new Color(45, 52, 54)); // Dark Slate Gray
-        JLabel lblTitle = new JLabel(" System User Management", JLabel.LEFT);
+        
+        lblTitle = new JLabel("  System User & Credential Management", JLabel.LEFT);
         lblTitle.setForeground(Color.WHITE);
         lblTitle.setFont(new Font("SansSerif", Font.BOLD, 18));
         lblTitle.setPreferredSize(new Dimension(0, 50));
         header.add(lblTitle, BorderLayout.WEST);
         add(header, BorderLayout.NORTH);
 
-        // --- Table Section ---
-        String[] columns = {"Employee ID", "Password (Masked)", "System Role"};
+        // --- 2. Table Section ---
+        String[] columns = {"Employee ID", "Password", "System Role"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int r, int c) { return false; }
         };
         userTable = new JTable(tableModel);
         userTable.setRowHeight(25);
+        
+        refreshUserTable();
         add(new JScrollPane(userTable), BorderLayout.CENTER);
 
-        // --- Control Panel ---
+        // --- 3. Control Panel ---
         JPanel controlPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 10));
-        JButton btnResetPass = new JButton("Reset Password");
-        JButton btnChangeRole = new JButton("Update Role");
-        JButton btnBack = new JButton("Back to Admin");
+        btnResetPass = new JButton("Reset Password");
+        btnChangeRole = new JButton("Update Role");
+        JButton btnLogout = new JButton("Logout"); 
 
-        // Styling Buttons
-        btnResetPass.setBackground(new Color(9, 132, 227)); // Professional Blue
-        btnResetPass.setForeground(Color.WHITE);
+        // Styling (Text set to White for better contrast on dark colors)
+        btnResetPass.setBackground(new Color(9, 132, 227)); 
+        btnResetPass.setForeground(Color.BLACK);
         
+        btnChangeRole.setBackground(new Color(108, 92, 231)); 
+        btnChangeRole.setForeground(Color.BLACK);
+        
+        btnLogout.setBackground(new Color(214, 48, 49)); 
+        btnLogout.setForeground(Color.BLACK);
+
         controlPanel.add(btnResetPass);
         controlPanel.add(btnChangeRole);
-        controlPanel.add(btnBack);
+        controlPanel.add(btnLogout);
         add(controlPanel, BorderLayout.SOUTH);
 
-        // --- Logic ---
-        btnBack.addActionListener(e -> {
+        // --- 4. Event Listeners ---
+        btnLogout.addActionListener(e -> {
             this.dispose();
-            new AdminUI().setVisible(true);
+            new LoginFrame().setVisible(true); 
         });
 
         btnResetPass.addActionListener(e -> resetPasswordLogic());
-
-        refreshUserTable();
+        btnChangeRole.addActionListener(e -> updateRoleLogic());
     }
 
+    /**
+     * Requirement: ITUI must load data from user.csv and show plain-text passwords.
+     */
     private void refreshUserTable() {
         tableModel.setRowCount(0);
-        // In a real scenario, you'd add a getAllUsers() method to your LoginDao
-        // For now, we simulate the display logic:
-        List<UserAccount> users = fetchAllUsersFromCSV(); 
+        List<UserAccount> users = loginDao.getAllUsers(); 
+        
         for (UserAccount u : users) {
             tableModel.addRow(new Object[]{
                 u.getEmployeeNo(), 
-                "********", // Never show plain text passwords in the UI
+                u.getPassword(), 
                 u.getRole()
             });
+        }
+    }
+
+    /**
+     * Requirement: Admin oversight should not be able to change data.
+     */
+    public void setReadOnly() {
+        if (btnResetPass != null) btnResetPass.setVisible(false);
+        if (btnChangeRole != null) btnChangeRole.setVisible(false);
+        if (lblTitle != null) {
+            lblTitle.setText("  SYSTEM VIEW (READ-ONLY OVERSIGHT)");
+            lblTitle.setForeground(new Color(255, 184, 108)); // Orange alert color
         }
     }
 
@@ -95,20 +121,38 @@ public class ITUI extends mainMenuFunctions {
         int row = userTable.getSelectedRow();
         if (row != -1) {
             String empId = tableModel.getValueAt(row, 0).toString();
-            String newPass = JOptionPane.showInputDialog(this, "Enter new password for ID: " + empId);
+            String newPass = JOptionPane.showInputDialog(this, 
+                "Enter new password for ID: " + empId, "IT Password Reset", JOptionPane.QUESTION_MESSAGE);
+            
             if (newPass != null && !newPass.trim().isEmpty()) {
-                // Here you would call loginDao.updatePassword(empId, newPass)
-                JOptionPane.showMessageDialog(this, "Password updated successfully for " + empId);
+                if (loginDao.updatePassword(empId, newPass.trim())) {
+                    JOptionPane.showMessageDialog(this, "Password updated successfully for " + empId);
+                    refreshUserTable();
+                }
+            }
+        } else {
+            JOptionPane.showMessageDialog(this, "Please select a user from the table first.");
+        }
+    }
+
+    private void updateRoleLogic() {
+        int row = userTable.getSelectedRow();
+        if (row != -1) {
+            String empId = tableModel.getValueAt(row, 0).toString();
+            String[] roles = {"Admin", "HR", "Finance", "IT", "Regular"};
+            
+            String newRole = (String) JOptionPane.showInputDialog(this, 
+                "Select new role for ID: " + empId, "Update System Access", 
+                JOptionPane.QUESTION_MESSAGE, null, roles, tableModel.getValueAt(row, 2));
+
+            if (newRole != null) {
+                if (loginDao.updateRole(empId, newRole)) {
+                    JOptionPane.showMessageDialog(this, "Role updated to: " + newRole);
+                    refreshUserTable();
+                }
             }
         } else {
             JOptionPane.showMessageDialog(this, "Please select a user first.");
         }
-    }
-
-    // Mock method - you should move this logic into LoginDao.java
-    private List<UserAccount> fetchAllUsersFromCSV() {
-        List<UserAccount> list = new ArrayList<>();
-        // Logic similar to LoginDao authenticate but returning all rows
-        return list; 
     }
 }

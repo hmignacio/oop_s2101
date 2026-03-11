@@ -20,6 +20,10 @@ public class HRUI extends mainMenuFunctions {
     private JTable employeeTable;
     private DefaultTableModel tableModel;
     private EmployeeDao employeeDao;
+    
+    // Class-level fields for Admin Oversight control
+    private JButton btnAdd, btnEdit, btnDelete;
+    private JLabel lblHeader;
 
     public HRUI() {
         super("MotorPH - HR Employee Management");
@@ -36,7 +40,7 @@ public class HRUI extends mainMenuFunctions {
         headerPanel.setBackground(new Color(25, 25, 112)); 
         headerPanel.setPreferredSize(new Dimension(0, 60));
 
-        JLabel lblHeader = new JLabel("  Employee Master Records", JLabel.LEFT);
+        lblHeader = new JLabel("  Employee Master Records", JLabel.LEFT);
         lblHeader.setForeground(Color.WHITE);
         lblHeader.setFont(new Font("SansSerif", Font.BOLD, 20));
         headerPanel.add(lblHeader, BorderLayout.WEST);
@@ -62,34 +66,33 @@ public class HRUI extends mainMenuFunctions {
 
         // --- 3. Toolbar ---
         JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
-        JButton btnAdd = new JButton("Add New Employee");
-        JButton btnEdit = new JButton("Edit Selected");
-        JButton btnDelete = new JButton("Delete Employee");
+        btnAdd = new JButton("Add New Employee");
+        btnEdit = new JButton("Edit Selected");
+        btnDelete = new JButton("Delete Employee");
         JButton btnRefresh = new JButton("Refresh");
-        JButton btnBack = new JButton("Logout");
+        JButton btnLogout = new JButton("Logout");
 
-        btnAdd.setBackground(new Color(34, 139, 34)); 
-        btnAdd.setForeground(Color.WHITE);
-        btnAdd.setOpaque(true);
-        btnAdd.setBorderPainted(false);
-
-        btnDelete.setBackground(new Color(178, 34, 34)); 
-        btnDelete.setForeground(Color.WHITE);
-        btnDelete.setOpaque(true);
-        btnDelete.setBorderPainted(false);
+        // Styling
+        styleToolbarButton(btnAdd, new Color(34, 139, 34)); 
+        styleToolbarButton(btnDelete, new Color(178, 34, 34));
+        styleToolbarButton(btnEdit, new Color(70, 130, 180));
 
         toolbar.add(btnAdd);
         toolbar.add(btnEdit);
         toolbar.add(btnDelete);
         toolbar.add(new JSeparator(SwingConstants.VERTICAL));
         toolbar.add(btnRefresh);
-        toolbar.add(btnBack);
+        toolbar.add(btnLogout);
         add(toolbar, BorderLayout.SOUTH);
 
         // --- 4. Listeners ---
         btnRefresh.addActionListener(e -> refreshTable());
-        btnBack.addActionListener(e -> { this.dispose(); new LoginFrame().setVisible(true); });
-        btnAdd.addActionListener(e -> { new EmployeeDialog(this, null).setVisible(true); refreshTable(); });
+        btnLogout.addActionListener(e -> { this.dispose(); new LoginFrame().setVisible(true); });
+        
+        btnAdd.addActionListener(e -> { 
+            new EmployeeDialog(this, null).setVisible(true); 
+            refreshTable(); 
+        });
         
         btnEdit.addActionListener(e -> {
             int row = employeeTable.getSelectedRow();
@@ -107,7 +110,7 @@ public class HRUI extends mainMenuFunctions {
             int row = employeeTable.getSelectedRow();
             if (row != -1) {
                 String empId = tableModel.getValueAt(row, 0).toString();
-                int confirm = JOptionPane.showConfirmDialog(this, "Delete Employee #" + empId + "?", "Confirm", JOptionPane.YES_NO_OPTION);
+                int confirm = JOptionPane.showConfirmDialog(this, "Delete Employee #" + empId + "?", "Confirm Delete", JOptionPane.YES_NO_OPTION);
                 if (confirm == JOptionPane.YES_OPTION) {
                     if (employeeDao.delete(empId)) refreshTable();
                 }
@@ -115,6 +118,24 @@ public class HRUI extends mainMenuFunctions {
                 JOptionPane.showMessageDialog(this, Constants.NO_SELECTION_ERROR);
             }
         });
+    }
+
+    public void disableEditing() {
+        if (btnAdd != null) btnAdd.setVisible(false);
+        if (btnEdit != null) btnEdit.setVisible(false);
+        if (btnDelete != null) btnDelete.setVisible(false);
+        if (lblHeader != null) {
+            lblHeader.setText("  EMPLOYEE MASTER RECORDS (READ-ONLY VIEW)");
+            lblHeader.setForeground(new Color(255, 165, 0)); 
+        }
+    }
+
+    private void styleToolbarButton(JButton btn, Color bg) {
+        btn.setBackground(bg);
+        btn.setForeground(Color.WHITE);
+        btn.setOpaque(true);
+        btn.setBorderPainted(false);
+        btn.setFont(new Font("SansSerif", Font.BOLD, 12));
     }
 
     private void refreshTable() {
@@ -132,6 +153,7 @@ public class HRUI extends mainMenuFunctions {
         }
     }
 
+    // --- EMPLOYEE DIALOG CLASS ---
     private class EmployeeDialog extends JDialog {
         private JTextField[] fields;
         private final String[] labels = {
@@ -172,7 +194,8 @@ public class HRUI extends mainMenuFunctions {
         }
 
         private void populateFields(Employee emp) {
-            fields[0].setText(emp.getEmployeeNumber()); fields[0].setEditable(false);
+            fields[0].setText(emp.getEmployeeNumber()); 
+            if (existingEmp != null) fields[0].setEditable(false);
             fields[1].setText(emp.getLastName()); fields[2].setText(emp.getFirstName());
             fields[3].setText(emp.getBirthday()); fields[4].setText(emp.getAddress());
             fields[5].setText(emp.getPhoneNumber()); fields[6].setText(emp.getEmail());
@@ -187,11 +210,11 @@ public class HRUI extends mainMenuFunctions {
         }
 
         private void validateAndSave() {
-            // 1. Reset red borders
-            for (JTextField f : fields) f.setBorder(UIManager.getLookAndFeel().getDefaults().getBorder("TextField.border"));
+            for (JTextField f : fields) {
+                f.setBorder(UIManager.getLookAndFeel().getDefaults().getBorder("TextField.border"));
+            }
 
             try {
-                // 2. Required Field Check
                 for (int i = 0; i < fields.length; i++) {
                     if (fields[i].getText().trim().isEmpty()) { 
                         highlightError(fields[i]); 
@@ -199,19 +222,16 @@ public class HRUI extends mainMenuFunctions {
                     }
                 }
 
-                // 3. Duplicate ID Check
                 if (existingEmp == null && employeeDao.findById(fields[0].getText().trim()) != null) {
                     highlightError(fields[0]); 
                     throw new Exception(Constants.DUPLICATE_EMP_NUM_ERROR);
                 }
 
-                // 4. Birthday Regex Validation (Using Constant)
                 if (!fields[3].getText().trim().matches(Constants.DATE_PATTERN)) { 
                     highlightError(fields[3]); 
                     throw new Exception("Invalid Date: Use MM-DD-YYYY format."); 
                 }
 
-                // 5. Pattern Validations (Using Constants)
                 if (!fields[5].getText().matches(Constants.CONTACT_NUMBER_PATTERN)) { 
                     highlightError(fields[5]); throw new Exception(Constants.INVALID_CONTACT_ERROR); 
                 }
@@ -231,54 +251,64 @@ public class HRUI extends mainMenuFunctions {
                     highlightError(fields[10]); throw new Exception(Constants.INVALID_PAGIBIG_ERROR); 
                 }
 
-                // 6. Numeric Validations
                 for (int i = 14; i <= 17; i++) {
                     try { 
-                        Double.parseDouble(fields[i].getText()); 
-                    } catch (Exception e) { 
+                        Double.parseDouble(fields[i].getText().trim()); 
+                    } catch (NumberFormatException e) { 
                         highlightError(fields[i]); 
                         throw new Exception("'" + labels[i] + "' " + Constants.INVALID_NUMERIC_ERROR); 
                     }
                 }
 
-                // 7. --- CONFIRMATION DIALOG ---
                 int confirm = JOptionPane.showConfirmDialog(this, 
-                    "Are the details correct for: " + fields[2].getText() + " " + fields[1].getText() + "?", 
-                    "Confirm Save", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+                    "Save changes for: " + fields[2].getText() + " " + fields[1].getText() + "?", 
+                    "Confirm Save", JOptionPane.YES_NO_OPTION);
 
-                if (confirm != JOptionPane.YES_OPTION) return;
+                if (confirm == JOptionPane.YES_OPTION) {
+                    Employee emp = (existingEmp == null) ? new Employee() : existingEmp;
+                    mapData(emp); 
 
-                // 8. Save Logic (Mapping to Employee Object)
-                Employee emp = (existingEmp == null) ? new Employee() : existingEmp;
-                emp.setEmployeeNumber(fields[0].getText().trim());
-                emp.setLastName(fields[1].getText().trim());
-                emp.setFirstName(fields[2].getText().trim());
-                emp.setBirthday(fields[3].getText().trim());
-                emp.setAddress(fields[4].getText().trim());
-                emp.setPhoneNumber(fields[5].getText().trim());
-                emp.setEmail(fields[6].getText().trim());
-                emp.setSssNumber(fields[7].getText().trim());
-                emp.setPhilhealthNumber(fields[8].getText().trim());
-                emp.setTinNumber(fields[9].getText().trim());
-                emp.setPagibigNumber(fields[10].getText().trim());
-                emp.setStatus(fields[11].getText().trim());
-                emp.setPosition(fields[12].getText().trim());
-                emp.setImmediateSupervisor(fields[13].getText().trim());
-                
-                // Keep salaries in model but hide from HR GUI
-                emp.setBasicSalary(existingEmp != null ? existingEmp.getBasicSalary() : 0.0);
-                emp.setRiceSubsidy(Double.parseDouble(fields[14].getText()));
-                emp.setPhoneAllowance(Double.parseDouble(fields[15].getText()));
-                emp.setClothingAllowance(Double.parseDouble(fields[16].getText()));
-                emp.setGrossSalaryRate(existingEmp != null ? existingEmp.getGrossSalaryRate() : 0.0);
-                emp.setHourlyRate(Double.parseDouble(fields[17].getText()));
-
-                if (existingEmp == null ? employeeDao.addEmployee(emp) : employeeDao.updateEmployee(emp)) {
-                    JOptionPane.showMessageDialog(this, "Record saved successfully.");
-                    dispose();
+                    boolean success = (existingEmp == null) ? employeeDao.addEmployee(emp) : employeeDao.updateEmployee(emp);
+                    
+                    if (success) {
+                        JOptionPane.showMessageDialog(this, "Employee record saved successfully.");
+                        dispose();
+                    }
                 }
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, ex.getMessage(), "Validation Error", JOptionPane.WARNING_MESSAGE);
+            }
+        }
+
+        /**
+         * Implementation of the mapping logic to resolve "cannot find symbol"
+         */
+        private void mapData(Employee emp) {
+            emp.setEmployeeNumber(fields[0].getText().trim());
+            emp.setLastName(fields[1].getText().trim());
+            emp.setFirstName(fields[2].getText().trim());
+            emp.setBirthday(fields[3].getText().trim());
+            emp.setAddress(fields[4].getText().trim());
+            emp.setPhoneNumber(fields[5].getText().trim());
+            emp.setEmail(fields[6].getText().trim());
+            emp.setSssNumber(fields[7].getText().trim());
+            emp.setPhilhealthNumber(fields[8].getText().trim());
+            emp.setTinNumber(fields[9].getText().trim());
+            emp.setPagibigNumber(fields[10].getText().trim());
+            emp.setStatus(fields[11].getText().trim());
+            emp.setPosition(fields[12].getText().trim());
+            emp.setImmediateSupervisor(fields[13].getText().trim());
+            
+            // Map numeric fields with parsing
+            emp.setRiceSubsidy(Double.parseDouble(fields[14].getText().trim()));
+            emp.setPhoneAllowance(Double.parseDouble(fields[15].getText().trim()));
+            emp.setClothingAllowance(Double.parseDouble(fields[16].getText().trim()));
+            emp.setHourlyRate(Double.parseDouble(fields[17].getText().trim()));
+            
+            // Retain values not edited in this dialog if editing existing
+            if (existingEmp == null) {
+                emp.setBasicSalary(0.0);
+                emp.setGrossSalaryRate(0.0);
             }
         }
 
