@@ -81,6 +81,57 @@ public class LoginDao {
     public boolean updateRole(String empId, String newRole) {
         return updateAccountField(empId, newRole, 2); // Index 2 is Role
     }
+    
+    public boolean addAccount(UserAccount account) {
+        // The 'true' parameter enables APPEND mode
+        try (PrintWriter pw = new PrintWriter(new FileWriter(csvFile, true))) {
+            // Trim every field to prevent "Pending" status bugs caused by hidden spaces
+            String empId = account.getEmployeeNo().trim();
+            String pass = account.getPassword().trim();
+            String role = account.getRole().trim();
+            
+            // Explicitly join with commas and NO extra spaces
+            pw.println(empId + "," + pass + "," + role);
+            return true;
+        } catch (IOException e) {
+            System.err.println("Error adding new account: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    public boolean deleteAccount(String empId) {
+        List<String> lines = new ArrayList<>();
+        boolean deleted = false;
+        String targetId = empId.trim();
+
+        try (BufferedReader br = new BufferedReader(new FileReader(csvFile))) {
+            String header = br.readLine();
+            if (header != null) lines.add(header);
+
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] data = line.split(",");
+                // If the ID doesn't match, keep the line
+                if (!data[0].trim().equals(targetId)) {
+                    lines.add(line);
+                } else {
+                    deleted = true; // Found the target to remove
+                }
+            }
+        } catch (IOException e) {
+            return false;
+        }
+
+        if (deleted) {
+            try (PrintWriter pw = new PrintWriter(new FileWriter(csvFile))) {
+                for (String l : lines) pw.println(l);
+                return true;
+            } catch (IOException e) {
+                return false;
+            }
+        }
+        return false;
+    }
 
     /**
      * Helper: Generic method to update a specific column in the CSV.

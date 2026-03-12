@@ -121,6 +121,7 @@ public class LoginFrame extends JFrame {
         UserAccount account = loginDao.authenticate(empId, password);
 
         if (account != null) {
+            JOptionPane.showMessageDialog(this, "Login Successful! Role: " + account.getRole());
             this.dispose(); // Close login
             openDashboard(account);
         } else {
@@ -130,17 +131,13 @@ public class LoginFrame extends JFrame {
 
     /**
      * Role-based redirection logic.
-     * Ensures strict isolation between IT, HR, Finance, and Admin.
+     * Updated to support the new HR -> IT hire workflow.
      */
     private void openDashboard(UserAccount account) {
         EmployeeDao empDao = new EmployeeDao();
+        
+        // Fetch the profile for the logged-in ID
         Employee emp = empDao.findById(account.getEmployeeNo());
-
-        // Basic check for non-Admin users to ensure profile exists
-        if (emp == null && !account.getRole().equalsIgnoreCase("Admin")) {
-            JOptionPane.showMessageDialog(null, "Error: Profile data missing for ID " + account.getEmployeeNo());
-            return;
-        }
 
         String role = account.getRole();
 
@@ -152,15 +149,25 @@ public class LoginFrame extends JFrame {
             new HRUI().setVisible(true); 
         } 
         else if (role.equalsIgnoreCase("IT")) {
-            // IT users get only the IT Management Portal
             new ITUI().setVisible(true);
         } 
         else if (role.equalsIgnoreCase("Finance")) {
             new FinanceUI().setVisible(true);
         }
+        else if (role.equalsIgnoreCase("Regular")) {
+            // Check if HR has created the profile yet
+            if (emp != null) {
+                new RegularEmployeeUI(emp).setVisible(true);
+            } else {
+                JOptionPane.showMessageDialog(null, 
+                    "Profile not found. Please contact HR to complete your record.", 
+                    "System Error", JOptionPane.ERROR_MESSAGE);
+                new LoginFrame().setVisible(true); // Return to login
+            }
+        }
         else {
-            // Regular employees see only their specific self-service portal
-            new RegularEmployeeUI(emp).setVisible(true);
+            JOptionPane.showMessageDialog(null, "Unrecognized Role. Access Denied.");
+            new LoginFrame().setVisible(true);
         }
     }
 }

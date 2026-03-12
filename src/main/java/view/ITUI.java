@@ -5,29 +5,34 @@
 package view;
 
 /**
- *
  * @author Vladimir Bernardo
  */
 import dao.LoginDao;
+import dao.EmployeeDao;
 import model.UserAccount;
+import model.Employee;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
+import java.util.Optional;
 
 public class ITUI extends mainMenuFunctions {
     private JTable userTable;
     private DefaultTableModel tableModel;
     private LoginDao loginDao;
+    private EmployeeDao employeeDao; 
     
-    // Class-level fields to allow Read-Only access
     private JButton btnResetPass;
     private JButton btnChangeRole;
+    private JButton btnCreateAccount; 
+    private JButton btnDeleteAcc; // Class-level field for access control
     private JLabel lblTitle;
 
     public ITUI() {
         super("MotorPH - IT System Administration");
         this.loginDao = new LoginDao();
+        this.employeeDao = new EmployeeDao();
         initUI();
     }
 
@@ -35,9 +40,9 @@ public class ITUI extends mainMenuFunctions {
     protected void initUI() {
         setLayout(new BorderLayout(15, 15));
 
-        // --- 1. Header Section ---
+        // --- 1. Header ---
         JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(new Color(45, 52, 54)); // Dark Slate Gray
+        header.setBackground(new Color(45, 52, 54)); 
         
         lblTitle = new JLabel("  System User & Credential Management", JLabel.LEFT);
         lblTitle.setForeground(Color.WHITE);
@@ -46,8 +51,8 @@ public class ITUI extends mainMenuFunctions {
         header.add(lblTitle, BorderLayout.WEST);
         add(header, BorderLayout.NORTH);
 
-        // --- 2. Table Section ---
-        String[] columns = {"Employee ID", "Password", "System Role"};
+        // --- 2. Table ---
+        String[] columns = {"Employee ID", "Full Name", "Password", "System Role", "Account Status"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int r, int c) { return false; }
@@ -60,60 +65,113 @@ public class ITUI extends mainMenuFunctions {
 
         // --- 3. Control Panel ---
         JPanel controlPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 10));
+        
+        // Initialize Buttons
+        btnCreateAccount = new JButton("Create New Account");
         btnResetPass = new JButton("Reset Password");
         btnChangeRole = new JButton("Update Role");
+        btnDeleteAcc = new JButton("Delete Account"); // Initialize before styling
+        JButton btnRefresh = new JButton("Refresh List");
         JButton btnLogout = new JButton("Logout"); 
 
-        // Styling (Text set to White for better contrast on dark colors)
-        btnResetPass.setBackground(new Color(9, 132, 227)); 
-        btnResetPass.setForeground(Color.BLACK);
-        
-        btnChangeRole.setBackground(new Color(108, 92, 231)); 
-        btnChangeRole.setForeground(Color.BLACK);
-        
-        btnLogout.setBackground(new Color(214, 48, 49)); 
-        btnLogout.setForeground(Color.BLACK);
+        // Styling
+        styleITButton(btnCreateAccount, new Color(46, 204, 113)); // Emerald Green
+        styleITButton(btnResetPass, new Color(9, 132, 227));      // Blue
+        styleITButton(btnChangeRole, new Color(108, 92, 231));    // Purple
+        styleITButton(btnDeleteAcc, new Color(178, 34, 34));      // Firebrick Red
+        styleITButton(btnLogout, new Color(214, 48, 49));         // Red
 
+        // Add to Panel
+        controlPanel.add(btnCreateAccount);
         controlPanel.add(btnResetPass);
         controlPanel.add(btnChangeRole);
+        controlPanel.add(btnDeleteAcc);
+        controlPanel.add(btnRefresh);
         controlPanel.add(btnLogout);
         add(controlPanel, BorderLayout.SOUTH);
 
-        // --- 4. Event Listeners ---
-        btnLogout.addActionListener(e -> {
-            this.dispose();
-            new LoginFrame().setVisible(true); 
-        });
-
+        // --- 4. Listeners ---
+        btnRefresh.addActionListener(e -> refreshUserTable());
+        btnLogout.addActionListener(e -> { this.dispose(); new LoginFrame().setVisible(true); });
         btnResetPass.addActionListener(e -> resetPasswordLogic());
         btnChangeRole.addActionListener(e -> updateRoleLogic());
+        btnCreateAccount.addActionListener(e -> createAccountLogic());
+        btnDeleteAcc.addActionListener(e -> deleteAccountLogic());
     }
 
     /**
-     * Requirement: ITUI must load data from user.csv and show plain-text passwords.
+     * Requirement: Reflect HR changes by comparing Employee records vs User accounts.
      */
     private void refreshUserTable() {
         tableModel.setRowCount(0);
-        List<UserAccount> users = loginDao.getAllUsers(); 
+        List<UserAccount> accounts = loginDao.getAllUsers();
+        List<Employee> employees = employeeDao.getAllEmployees();
         
-        for (UserAccount u : users) {
-            tableModel.addRow(new Object[]{
-                u.getEmployeeNo(), 
-                u.getPassword(), 
-                u.getRole()
-            });
+        for (Employee emp : employees) {
+            String hrId = emp.getEmployeeNumber().trim(); 
+            
+            UserAccount found = null;
+            for (UserAccount acc : accounts) {
+                if (acc.getEmployeeNo().trim().equals(hrId)) {
+                    found = acc;
+                    break;
+                }
+            }
+
+            if (found != null) {
+                tableModel.addRow(new Object[]{
+                    hrId, emp.getLastName() + ", " + emp.getFirstName(),
+                    found.getPassword(), found.getRole(), "ACTIVE"
+                });
+            } else {
+                tableModel.addRow(new Object[]{
+                    hrId, emp.getLastName() + ", " + emp.getFirstName(),
+                    "---", "---", "PENDING ACCOUNT"
+                });
+            }
         }
     }
 
-    /**
-     * Requirement: Admin oversight should not be able to change data.
-     */
+    private void createAccountLogic() {
+        int row = userTable.getSelectedRow();
+        if (row != -1) {
+            String status = tableModel.getValueAt(row, 4).toString();
+            if (!status.equals("PENDING ACCOUNT")) {
+                JOptionPane.showMessageDialog(this, "This employee already has an account.");
+                return;
+            }
+
+            String empId = tableModel.getValueAt(row, 0).toString().trim();
+            String pass = JOptionPane.showInputDialog(this, "Set initial password for " + empId + ":");
+            
+            if (pass != null && !pass.trim().isEmpty()) {
+                String[] roles = {"Regular", "HR", "IT", "Finance", "Admin"};
+                String role = (String) JOptionPane.showInputDialog(this, "Assign Role:", "System Access",
+                        JOptionPane.QUESTION_MESSAGE, null, roles, roles[0]);
+                
+                if (role != null) {
+                    UserAccount newAccount = new UserAccount(empId, pass.trim(), role);
+                    if (loginDao.addAccount(newAccount)) { 
+                        JOptionPane.showMessageDialog(this, "Account created successfully for " + empId);
+                        refreshUserTable();
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Failed to save account.");
+                    }
+                }
+            }
+        } else {
+            JOptionPane.showMessageDialog(this, "Select a 'PENDING' employee.");
+        }
+    }
+
     public void setReadOnly() {
         if (btnResetPass != null) btnResetPass.setVisible(false);
         if (btnChangeRole != null) btnChangeRole.setVisible(false);
+        if (btnCreateAccount != null) btnCreateAccount.setVisible(false);
+        if (btnDeleteAcc != null) btnDeleteAcc.setVisible(false);
         if (lblTitle != null) {
             lblTitle.setText("  SYSTEM VIEW (READ-ONLY OVERSIGHT)");
-            lblTitle.setForeground(new Color(255, 184, 108)); // Orange alert color
+            lblTitle.setForeground(new Color(255, 184, 108)); 
         }
     }
 
@@ -121,17 +179,13 @@ public class ITUI extends mainMenuFunctions {
         int row = userTable.getSelectedRow();
         if (row != -1) {
             String empId = tableModel.getValueAt(row, 0).toString();
-            String newPass = JOptionPane.showInputDialog(this, 
-                "Enter new password for ID: " + empId, "IT Password Reset", JOptionPane.QUESTION_MESSAGE);
-            
+            String newPass = JOptionPane.showInputDialog(this, "New password for ID: " + empId);
             if (newPass != null && !newPass.trim().isEmpty()) {
                 if (loginDao.updatePassword(empId, newPass.trim())) {
-                    JOptionPane.showMessageDialog(this, "Password updated successfully for " + empId);
+                    JOptionPane.showMessageDialog(this, "Password updated.");
                     refreshUserTable();
                 }
             }
-        } else {
-            JOptionPane.showMessageDialog(this, "Please select a user from the table first.");
         }
     }
 
@@ -140,19 +194,45 @@ public class ITUI extends mainMenuFunctions {
         if (row != -1) {
             String empId = tableModel.getValueAt(row, 0).toString();
             String[] roles = {"Admin", "HR", "Finance", "IT", "Regular"};
-            
-            String newRole = (String) JOptionPane.showInputDialog(this, 
-                "Select new role for ID: " + empId, "Update System Access", 
-                JOptionPane.QUESTION_MESSAGE, null, roles, tableModel.getValueAt(row, 2));
+            String newRole = (String) JOptionPane.showInputDialog(this, "Select role:", "Update Role", 
+                    JOptionPane.QUESTION_MESSAGE, null, roles, tableModel.getValueAt(row, 3));
+            if (newRole != null && loginDao.updateRole(empId, newRole)) {
+                refreshUserTable();
+            }
+        }
+    }
+    
+    private void deleteAccountLogic() {
+        int row = userTable.getSelectedRow();
+        if (row != -1) {
+            String empId = tableModel.getValueAt(row, 0).toString();
+            String status = tableModel.getValueAt(row, 4).toString();
 
-            if (newRole != null) {
-                if (loginDao.updateRole(empId, newRole)) {
-                    JOptionPane.showMessageDialog(this, "Role updated to: " + newRole);
+            if (status.equals("PENDING ACCOUNT")) {
+                JOptionPane.showMessageDialog(this, "No account exists to delete.");
+                return;
+            }
+
+            int confirm = JOptionPane.showConfirmDialog(this, 
+                "Revoke system access for ID: " + empId + "?", 
+                "Confirm Revocation", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+
+            if (confirm == JOptionPane.YES_OPTION) {
+                if (loginDao.deleteAccount(empId)) {
+                    JOptionPane.showMessageDialog(this, "Account deleted successfully.");
                     refreshUserTable();
                 }
             }
         } else {
-            JOptionPane.showMessageDialog(this, "Please select a user first.");
+            JOptionPane.showMessageDialog(this, "Please select an account.");
         }
+    }
+
+    private void styleITButton(JButton btn, Color bg) {
+        btn.setBackground(bg);
+        btn.setForeground(Color.WHITE);
+        btn.setOpaque(true);
+        btn.setBorderPainted(false);
+        btn.setFont(new Font("SansSerif", Font.BOLD, 12));
     }
 }
