@@ -9,6 +9,11 @@ package utils;
  * @author Vladimir Bernardo
  */
 public class Constants {
+    
+    public static final String USER_CSV_PATH = "src/main/java/resources/users.csv";
+    public static final String EMPLOYEE_CSV_PATH = "src/main/java/resources/employee.csv";
+    public static final String ATTENDANCE_CSV_PATH = "src/main/java/resources/attendance.csv";
+    public static final String LEAVE_CSV_PATH = "src/main/java/resources/leaves.csv";
     // --- 1. Pay Rates & Multipliers ---
     // Note: These are fallback values; PayrollService uses the Employee object data first.
     public static final double OVERTIME_RATE_MULTIPLIER = 1.25;

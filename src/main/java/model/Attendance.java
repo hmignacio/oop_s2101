@@ -9,9 +9,9 @@ package model;
  * @author Vladimir Bernardo
  */
 public class Attendance {
-    private String employeeNumber;
-    private String date;
-    private String timeIn;
+    private final String employeeNumber;
+    private final String date;
+    private final String timeIn;
     private String timeOut;
 
     public Attendance(String employeeNumber, String date, String timeIn, String timeOut) {
@@ -26,4 +26,8 @@ public class Attendance {
     public String getDate() { return date; }
     public String getTimeIn() { return timeIn; }
     public String getTimeOut() { return timeOut; }
+    
+    public void setTimeOut(String timeOut) {
+        this.timeOut = timeOut;
+    }
 }

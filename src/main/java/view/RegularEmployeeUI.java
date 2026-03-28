@@ -8,8 +8,10 @@ package view;
  *
  * @author Vladimir Bernardo
  */
-import dao.AttendanceDao;
-import dao.LeaveDao;
+import interfaces.AttendanceDao;
+import interfaces.LeaveDao;
+import dao.AttendanceCSVDao;
+import dao.LeaveCSVDao;
 import model.Attendance;
 import model.Employee;
 import model.LeaveRequest;
@@ -23,12 +25,11 @@ import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 
 public class RegularEmployeeUI extends mainMenuFunctions {
-    private Employee currentEmployee;
-    private AttendanceDao attendanceDao;
-    private LeaveDao leaveDao; 
+    private final Employee currentEmployee;
+    private final AttendanceDao attendanceDao;
+    private final LeaveDao leaveDao; 
     private JTable attendanceTable;
     private JButton btnTimeIn, btnTimeOut;
     private JLabel lblClock;
@@ -36,13 +37,13 @@ public class RegularEmployeeUI extends mainMenuFunctions {
     public RegularEmployeeUI(Employee emp) {
         super("MotorPH - Employee Portal");
         this.currentEmployee = emp;
-        this.attendanceDao = new AttendanceDao();
-        this.leaveDao = new LeaveDao(); 
+        this.attendanceDao = new AttendanceCSVDao();
+        this.leaveDao = new LeaveCSVDao(); 
         initUI();
     }
 
     @Override
-    protected void initUI() {
+    protected final void initUI() {
         setLayout(new BorderLayout(15, 15));
         
         // --- 1. Header ---
@@ -50,7 +51,7 @@ public class RegularEmployeeUI extends mainMenuFunctions {
         welcomePanel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
         welcomePanel.setBackground(new Color(240, 240, 245));
 
-        JLabel lblName = new JLabel("Welcome, " + currentEmployee.getFullName());
+        JLabel lblName = new JLabel("Welcome, " + currentEmployee.getFirstName() + " " + currentEmployee.getLastName());
         lblName.setFont(new Font("SansSerif", Font.BOLD, 22));
         
         lblClock = new JLabel();
@@ -107,7 +108,12 @@ public class RegularEmployeeUI extends mainMenuFunctions {
         // --- 4. Listeners ---
         btnTimeIn.addActionListener(e -> recordPunch("IN"));
         btnTimeOut.addActionListener(e -> recordPunch("OUT"));
-        btnApplyLeave.addActionListener(e -> new LeaveRequestDialog(this).setVisible(true));
+        
+        // Connects to the LeaveRequestFrame we fixed
+        btnApplyLeave.addActionListener(e -> {
+            new LeaveRequestFrame(currentEmployee.getEmployeeNumber()).setVisible(true);
+        });
+        
         btnLeaveHistory.addActionListener(e -> showLeaveHistory());
         btnViewPayslip.addActionListener(e -> handlePayslipSelection());
         btnLogout.addActionListener(e -> { this.dispose(); new LoginFrame().setVisible(true); });
@@ -119,51 +125,14 @@ public class RegularEmployeeUI extends mainMenuFunctions {
         lblClock.setText("System Time: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss")));
     }
 
-    private void handlePayslipSelection() {
-        JPanel selectionPanel = new JPanel(new GridLayout(2, 2, 10, 10));
-        String[] months = {"January", "February", "March", "April", "May", "June", 
-                           "July", "August", "September", "October", "November", "December"};
-        JComboBox<String> monthCombo = new JComboBox<>(months);
-        Integer[] years = {2024, 2025, 2026}; 
-        JComboBox<Integer> yearCombo = new JComboBox<>(years);
-        
-        monthCombo.setSelectedIndex(LocalDate.now().getMonthValue() - 1);
-        yearCombo.setSelectedItem(LocalDate.now().getYear());
-
-        selectionPanel.add(new JLabel("Select Month:")); selectionPanel.add(monthCombo);
-        selectionPanel.add(new JLabel("Select Year:")); selectionPanel.add(yearCombo);
-
-        int result = JOptionPane.showConfirmDialog(this, selectionPanel, "View Payslip History", JOptionPane.OK_CANCEL_OPTION);
-        
-        if (result == JOptionPane.OK_OPTION) {
-            int selMonth = monthCombo.getSelectedIndex() + 1;
-            int selYear = (int) yearCombo.getSelectedItem();
-            
-            List<Attendance> allLogs = attendanceDao.getAllAttendance();
-            List<Attendance> filteredLogs = allLogs.stream()
-                .filter(log -> log.getEmployeeNumber().equals(currentEmployee.getEmployeeNumber()))
-                .filter(log -> {
-                    try {
-                        LocalDate d = LocalDate.parse(log.getDate(), DateTimeFormatter.ofPattern("MM/dd/yyyy"));
-                        return d.getMonthValue() == selMonth && d.getYear() == selYear;
-                    } catch (Exception ex) { return false; }
-                }).collect(Collectors.toList());
-
-            if (filteredLogs.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "No records found for the selected period.");
-            } else {
-                double totalHours = new PayrollService().calculateTotalHours(filteredLogs);
-                new PayslipFrame(currentEmployee, totalHours).setVisible(true);
-            }
-        }
-    }
-
     private void recordPunch(String type) {
         String date = LocalDate.now().format(DateTimeFormatter.ofPattern("MM/dd/yyyy"));
         String time = java.time.LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"));
-        if (attendanceDao.logTime(currentEmployee, date, time, type)) {
+        
+        if (attendanceDao.logTime(currentEmployee, date, time, type)) { 
             refreshAttendanceTable();
             checkAttendanceStatus();
+            JOptionPane.showMessageDialog(this, type + " recorded successfully.");
         }
     }
 
@@ -186,167 +155,147 @@ public class RegularEmployeeUI extends mainMenuFunctions {
         }
     }
 
-    // --- LEAVE DIALOG WITH VALIDATION ---
-    private class LeaveRequestDialog extends JDialog {
-        private JComboBox<String> comboType;
-        private JTextField txtStart, txtEnd;
-        private JTextArea txtReason;
-        private DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM-dd-yyyy");
+    private void handlePayslipSelection() {
+        JPanel selectionPanel = new JPanel(new GridLayout(2, 2, 10, 10));
+        String[] months = {"January", "February", "March", "April", "May", "June", 
+                           "July", "August", "September", "October", "November", "December"};
+        JComboBox<String> monthCombo = new JComboBox<>(months);
+        Integer[] years = {2024, 2025, 2026}; 
+        JComboBox<Integer> yearCombo = new JComboBox<>(years);
+        
+        monthCombo.setSelectedIndex(LocalDate.now().getMonthValue() - 1);
+        yearCombo.setSelectedItem(LocalDate.now().getYear());
 
-        public LeaveRequestDialog(Frame owner) {
-            super(owner, "Submit Leave Request", true);
-            setSize(450, 500);
-            setLocationRelativeTo(owner);
-            setLayout(new BorderLayout(10, 10));
+        selectionPanel.add(new JLabel("Select Month:")); selectionPanel.add(monthCombo);
+        selectionPanel.add(new JLabel("Select Year:")); selectionPanel.add(yearCombo);
 
-            JPanel form = new JPanel(new GridBagLayout());
-            form.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-            GridBagConstraints gbc = new GridBagConstraints();
-            gbc.fill = GridBagConstraints.HORIZONTAL; gbc.insets = new Insets(5, 5, 5, 5);
-
-            comboType = new JComboBox<>(new String[]{"Sick Leave", "Emergency Leave", "Vacation Leave"});
-            txtStart = new JTextField(10); txtStart.setEditable(false);
-            txtEnd = new JTextField(10); txtEnd.setEditable(false);
-            JButton btnStart = new JButton("...");
-            JButton btnEnd = new JButton("...");
-            txtReason = new JTextArea(4, 20); txtReason.setLineWrap(true);
-
-            gbc.gridx = 0; gbc.gridy = 0; form.add(new JLabel("Type:"), gbc);
-            gbc.gridx = 1; form.add(comboType, gbc);
-            gbc.gridx = 0; gbc.gridy = 1; form.add(new JLabel("Start Date:"), gbc);
-            JPanel p1 = new JPanel(new BorderLayout()); p1.add(txtStart); p1.add(btnStart, BorderLayout.EAST);
-            gbc.gridx = 1; form.add(p1, gbc);
-            gbc.gridx = 0; gbc.gridy = 2; form.add(new JLabel("End Date:"), gbc);
-            JPanel p2 = new JPanel(new BorderLayout()); p2.add(txtEnd); p2.add(btnEnd, BorderLayout.EAST);
-            gbc.gridx = 1; form.add(p2, gbc);
-            gbc.gridx = 0; gbc.gridy = 3; form.add(new JLabel("Reason:"), gbc);
-            gbc.gridx = 1; form.add(new JScrollPane(txtReason), gbc);
-
-            btnStart.addActionListener(e -> txtStart.setText(new CalendarPicker(owner).getSelectedDate()));
-            btnEnd.addActionListener(e -> txtEnd.setText(new CalendarPicker(owner).getSelectedDate()));
-
-            JButton btnSubmit = new JButton("Submit to Admin");
-            btnSubmit.setBackground(new Color(70, 130, 180)); btnSubmit.setForeground(Color.BLACK);
-            btnSubmit.addActionListener(e -> validateAndSubmit());
-
-            add(form, BorderLayout.CENTER);
-            add(btnSubmit, BorderLayout.SOUTH);
-        }
-
-        private void validateAndSubmit() {
-            try {
-                if (txtStart.getText().isEmpty() || txtEnd.getText().isEmpty()) 
-                    throw new Exception("Please select both Start and End dates.");
-
-                LocalDate today = LocalDate.now();
-                LocalDate start = LocalDate.parse(txtStart.getText(), dtf);
-                LocalDate end = LocalDate.parse(txtEnd.getText(), dtf);
-
-                if (end.isBefore(start)) 
-                    throw new Exception("End Date cannot be before Start Date.");
-
-                String type = comboType.getSelectedItem().toString();
-                long daysFromToday = ChronoUnit.DAYS.between(today, start);
-
-                // --- APPLY BUSINESS RULES ---
-                if (type.equals("Sick Leave") || type.equals("Emergency Leave")) {
-                    if (Math.abs(daysFromToday) > 7) {
-                        throw new Exception(type + " is only allowed within 7 days of today.");
-                    }
-                } 
-                else if (type.equals("Vacation Leave")) {
-                    if (daysFromToday < -7) {
-                        throw new Exception("Vacation Leave cannot be back-dated more than 7 days.");
-                    }
-                }
-
-                if (txtReason.getText().trim().isEmpty()) throw new Exception("Reason required.");
-
-                int confirm = JOptionPane.showConfirmDialog(this, "Submit application?", "Confirm", JOptionPane.YES_NO_OPTION);
-                if (confirm == JOptionPane.YES_OPTION) {
-                    String reqId = "REQ-" + (System.currentTimeMillis() % 100000);
-                    LeaveRequest lr = new LeaveRequest(reqId, currentEmployee.getEmployeeNumber(), 
-                        type, txtStart.getText(), txtEnd.getText(), "Pending", txtReason.getText());
-                    
-                    if (leaveDao.addLeaveRequest(lr)) {
-                        JOptionPane.showMessageDialog(this, "Submitted successfully!");
-                        dispose();
-                    }
-                }
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, ex.getMessage(), "Validation Error", JOptionPane.ERROR_MESSAGE);
-            }
-        }
-    }
-
-    // --- CALENDAR PICKER ---
-    private class CalendarPicker extends JDialog {
-        private String selectedDate = "";
-        private LocalDate displayDate = LocalDate.now();
-        private JPanel daysPanel = new JPanel(new GridLayout(0, 7));
-        private JLabel lblMonth = new JLabel("", JLabel.CENTER);
-
-        public CalendarPicker(Frame parent) {
-            super(parent, "Select Date", true);
-            setSize(350, 350);
-            setLocationRelativeTo(parent);
-            setLayout(new BorderLayout());
-
-            JButton btnPrev = new JButton("<");
-            JButton btnNext = new JButton(">");
-            btnPrev.addActionListener(e -> { displayDate = displayDate.minusMonths(1); updateCalendar(); });
-            btnNext.addActionListener(e -> { displayDate = displayDate.plusMonths(1); updateCalendar(); });
-
-            JPanel header = new JPanel(new BorderLayout());
-            header.add(btnPrev, BorderLayout.WEST);
-            header.add(lblMonth, BorderLayout.CENTER);
-            header.add(btnNext, BorderLayout.EAST);
+        int result = JOptionPane.showConfirmDialog(this, selectionPanel, "View Payslip History", JOptionPane.OK_CANCEL_OPTION);
+        
+        if (result == JOptionPane.OK_OPTION) {
+            int selMonth = monthCombo.getSelectedIndex() + 1;
+            int selYear = (int) yearCombo.getSelectedItem();
             
-            add(header, BorderLayout.NORTH);
-            add(daysPanel, BorderLayout.CENTER);
-            updateCalendar();
-            setVisible(true);
-        }
+            List<Attendance> filteredLogs = attendanceDao.getAllAttendance().stream()
+                .filter(log -> log.getEmployeeNumber().equals(currentEmployee.getEmployeeNumber()))
+                .filter(log -> {
+                    try {
+                        LocalDate d = LocalDate.parse(log.getDate(), DateTimeFormatter.ofPattern("MM/dd/yyyy"));
+                        return d.getMonthValue() == selMonth && d.getYear() == selYear;
+                    } catch (Exception ex) { return false; }
+                }).collect(Collectors.toList());
 
-        private void updateCalendar() {
-            daysPanel.removeAll();
-            lblMonth.setText(displayDate.getMonth().name() + " " + displayDate.getYear());
-            String[] days = {"Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"};
-            for (String d : days) daysPanel.add(new JLabel(d, JLabel.CENTER));
+            if (filteredLogs.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "No records found for the selected period.");
+            } else {
+                // --- 1. EARNINGS CALCULATIONS ---
+                double totalHours = new PayrollService().calculateTotalHours(filteredLogs);
+                double hourlyRate = currentEmployee.getHourlyRate();
+                double grossBasic = totalHours * hourlyRate;
+                
+                double rice = currentEmployee.getRiceSubsidy();
+                double phone = currentEmployee.getPhoneAllowance();
+                double clothing = currentEmployee.getClothingAllowance();
+                double totalAllowances = rice + phone + clothing;
 
-            LocalDate first = displayDate.withDayOfMonth(1);
-            int gap = first.getDayOfWeek().getValue() % 7;
-            for (int i = 0; i < gap; i++) daysPanel.add(new JLabel(""));
+                // --- 2. DEDUCTIONS (Example standard formulas) ---
+                // You can replace these with calls to your PayrollService if you have them defined there
+                double sss = (grossBasic > 24750) ? 1125.00 : grossBasic * 0.045; 
+                double philhealth = grossBasic * 0.025;
+                double pagibig = 100.00;
+                double totalDeductions = sss + philhealth + pagibig;
+                
+                double netTakeHome = (grossBasic + totalAllowances) - totalDeductions;
 
-            int lastDay = YearMonth.from(displayDate).lengthOfMonth();
-            for (int i = 1; i <= lastDay; i++) {
-                final int day = i;
-                JButton btnDay = new JButton(String.valueOf(i));
-                btnDay.addActionListener(e -> {
-                    selectedDate = String.format("%02d-%02d-%d", displayDate.getMonthValue(), day, displayDate.getYear());
-                    dispose();
-                });
-                daysPanel.add(btnDay);
+                // --- 3. FORMATTING ---
+                java.text.DecimalFormat df = new java.text.DecimalFormat("#,##0.00");
+                String selectedMonthName = months[selMonth - 1];
+
+                // --- 4. BUILD READ-ONLY HTML VIEW WITH DEDUCTIONS ---
+                String payslipHtml = "<html><body style='width: 320px; font-family: sans-serif;'>"
+                        + "<div style='text-align: center; background-color: #191970; color: white; padding: 10px;'>"
+                        + "<h2 style='margin:0;'>MotorPH</h2>"
+                        + "<p style='margin:0;'>Monthly Payslip: " + selectedMonthName + " " + selYear + "</p></div>"
+                        + "<br><b>Employee:</b> " + currentEmployee.getFirstName() + " " + currentEmployee.getLastName()
+                        + "<br><b>Position:</b> " + currentEmployee.getPosition()
+                        + "<hr>"
+                        + "<b>Earnings:</b>"
+                        + "<table style='width: 100%; font-size: 11px;'>"
+                        + "<tr><td>Hours (" + totalHours + ") x Rate (" + hourlyRate + "):</td><td style='text-align: right;'>" + df.format(grossBasic) + "</td></tr>"
+                        + "<tr><td>Allowances (Rice/Phone/Cloth):</td><td style='text-align: right;'>" + df.format(totalAllowances) + "</td></tr>"
+                        + "<tr><td><b>Total Gross:</b></td><td style='text-align: right;'><b>PHP " + df.format(grossBasic + totalAllowances) + "</b></td></tr>"
+                        + "</table>"
+                        + "<br><b style='color: #b22222;'>Deductions:</b>"
+                        + "<table style='width: 100%; font-size: 11px; color: #b22222;'>"
+                        + "<tr><td>SSS Contribution:</td><td style='text-align: right;'>(" + df.format(sss) + ")</td></tr>"
+                        + "<tr><td>PhilHealth:</td><td style='text-align: right;'>(" + df.format(philhealth) + ")</td></tr>"
+                        + "<tr><td>Pag-IBIG:</td><td style='text-align: right;'>(" + df.format(pagibig) + ")</td></tr>"
+                        + "<tr><td><b>Total Deductions:</b></td><td style='text-align: right;'><b>PHP (" + df.format(totalDeductions) + ")</b></td></tr>"
+                        + "</table>"
+                        + "<div style='margin-top: 15px; padding: 12px; background-color: #f4f4f9; text-align: center; border: 2px solid #191970;'>"
+                        + "<span style='font-size: 12px;'><b>NET TAKE-HOME:</b></span><br>"
+                        + "<span style='font-size: 22px; color: #006400;'><b>PHP " + df.format(netTakeHome) + "</b></span>"
+                        + "</div>"
+                        + "<p style='font-size: 9px; text-align: center; color: #888;'>Generated for Employee ID: " + currentEmployee.getEmployeeNumber() + "</p>"
+                        + "</body></html>";
+
+                JLabel lblPayslip = new JLabel(payslipHtml);
+                JOptionPane.showMessageDialog(this, lblPayslip, "Official Payslip Summary", JOptionPane.PLAIN_MESSAGE);
             }
-            daysPanel.revalidate(); daysPanel.repaint();
         }
-        public String getSelectedDate() { return selectedDate; }
     }
-
+    /**
+     * READ-ONLY Leave History with MM-DD-YYYY Date Formatting
+     */
     private void showLeaveHistory() {
-        String[] cols = {"Type", "Date", "Status"};
-        DefaultTableModel m = new DefaultTableModel(cols, 0);
+        String[] cols = {"Type", "Start Date", "End Date", "Status", "Reason"};
+        DefaultTableModel m = new DefaultTableModel(cols, 0) {
+            @Override
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+
+        // Date Translator
+        DateTimeFormatter displayFormat = DateTimeFormatter.ofPattern("MM-dd-yyyy");
+
         List<LeaveRequest> history = leaveDao.getAllRequests().stream()
             .filter(lr -> lr.getEmployeeNumber().equals(currentEmployee.getEmployeeNumber()))
             .collect(Collectors.toList());
-        for (LeaveRequest lr : history) m.addRow(new Object[]{lr.getLeaveType(), lr.getStartDate(), lr.getStatus()});
-        JOptionPane.showMessageDialog(this, new JScrollPane(new JTable(m)), "My Leave Status", JOptionPane.PLAIN_MESSAGE);
+
+        for (LeaveRequest lr : history) {
+            String startDisp = lr.getStartDate();
+            String endDisp = lr.getEndDate();
+
+            try {
+                // Formats the CSV's YYYY-MM-DD to MM-DD-YYYY for the UI
+                startDisp = LocalDate.parse(lr.getStartDate()).format(displayFormat);
+                endDisp = LocalDate.parse(lr.getEndDate()).format(displayFormat);
+            } catch (Exception e) {
+                // If already formatted or empty, skip translation
+            }
+
+            m.addRow(new Object[]{
+                lr.getLeaveType(), 
+                startDisp, 
+                endDisp, 
+                lr.getStatus(), 
+                lr.getReason()
+            });
+        }
+        
+        JTable historyTable = new JTable(m);
+        JScrollPane scroll = new JScrollPane(historyTable);
+        scroll.setPreferredSize(new Dimension(600, 300));
+        
+        JOptionPane.showMessageDialog(this, scroll, "My Leave Status History", JOptionPane.PLAIN_MESSAGE);
     }
 
     private void styleSidebarButton(JButton btn, Color c) {
-        btn.setMaximumSize(new Dimension(200, 40)); btn.setAlignmentX(Component.CENTER_ALIGNMENT);
-        btn.setBackground(c); btn.setForeground(Color.WHITE); btn.setFont(new Font("SansSerif", Font.BOLD, 12));
-        btn.setOpaque(true); btn.setBorderPainted(false);
+        btn.setMaximumSize(new Dimension(200, 40)); 
+        btn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btn.setBackground(c); 
+        btn.setForeground(Color.WHITE); 
+        btn.setFont(new Font("SansSerif", Font.BOLD, 12));
+        btn.setOpaque(true); 
+        btn.setBorderPainted(false);
     }
 }
     

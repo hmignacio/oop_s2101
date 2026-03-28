@@ -8,8 +8,6 @@ package service;
  *
  * @author Vladimir Bernardo
  */
-import model.LeaveRequest;
-import java.util.List;
 
 public class LeaveService {
     // Logic for calculating remaining leave credits

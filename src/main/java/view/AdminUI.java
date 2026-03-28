@@ -8,30 +8,44 @@ package view;
  *
  * @author Vladimir Bernardo
  */
-import dao.EmployeeDao;
-import dao.LeaveDao;
+import interfaces.EmployeeDao;
+import interfaces.LeaveDao;
+import dao.EmployeeCSVDao;
+import dao.LeaveCSVDao;
 import model.Employee;
 import model.LeaveRequest;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
+/**
+ * MotorPH Administrator Dashboard
+ * Oversees Leave Approvals and provides Read-Only access to other modules.
+ * @author Vladimir Bernardo
+ */
 public class AdminUI extends mainMenuFunctions {
     private JTable leaveTable;
     private DefaultTableModel leaveModel;
-    private LeaveDao leaveDao;
+    private final LeaveDao leaveDao;
     private EmployeeDao employeeDao;
+    private final Employee currentUser; 
 
-    public AdminUI() {
+    public AdminUI(Employee emp) {
         super("MotorPH - Administrator Dashboard");
-        this.leaveDao = new LeaveDao();
-        this.employeeDao = new EmployeeDao();
+        this.currentUser = emp;
+        
+        // Connect interfaces to CSV implementations
+        this.leaveDao = new LeaveCSVDao();
+        this.employeeDao = new EmployeeCSVDao();
+        
         initUI();
     }
 
     @Override
-    protected void initUI() {
+    protected final void initUI() {
         setLayout(new BorderLayout(15, 15));
 
         // --- 1. Header ---
@@ -39,19 +53,18 @@ public class AdminUI extends mainMenuFunctions {
         header.setBackground(new Color(25, 25, 112)); // Midnight Blue
         header.setPreferredSize(new Dimension(0, 70));
         
-        JLabel lblTitle = new JLabel("  Executive Oversight & Leave Approval", JLabel.LEFT);
+        JLabel lblTitle = new JLabel("  Executive Oversight: Admin " + currentUser.getFirstName(), JLabel.LEFT);
         lblTitle.setForeground(Color.WHITE);
         lblTitle.setFont(new Font("SansSerif", Font.BOLD, 22));
         header.add(lblTitle, BorderLayout.WEST);
         add(header, BorderLayout.NORTH);
 
-        // --- 2. Center: Leave Approval Table (Full Access) ---
+        // --- 2. Center Panel: Leave Requests ---
         JPanel centerPanel = new JPanel(new BorderLayout());
         centerPanel.setBorder(BorderFactory.createTitledBorder(
                 BorderFactory.createEtchedBorder(), "Pending Leave Requests", 0, 0, 
                 new Font("SansSerif", Font.BOLD, 14), new Color(25, 25, 112)));
         
-        // Added "Reason" column to the array
         String[] columns = {"Req ID", "Emp #", "Type", "Start", "End", "Status", "Reason"};
         leaveModel = new DefaultTableModel(columns, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
@@ -60,8 +73,6 @@ public class AdminUI extends mainMenuFunctions {
         leaveTable = new JTable(leaveModel);
         leaveTable.setRowHeight(25);
         leaveTable.getTableHeader().setReorderingAllowed(false);
-        
-        // Adjust column width for Reason
         leaveTable.getColumnModel().getColumn(6).setPreferredWidth(250);
         
         refreshLeaveTable();
@@ -73,12 +84,11 @@ public class AdminUI extends mainMenuFunctions {
         JButton btnApprove = new JButton("Approve");
         JButton btnReject = new JButton("Reject");
 
-        // Styling Buttons
         styleActionButton(btnViewReason, new Color(70, 130, 180));
         styleActionButton(btnApprove, new Color(34, 139, 34));
         styleActionButton(btnReject, new Color(178, 34, 34));
         
-        approvalActions.add(new JLabel("Process Selected Request: "));
+        approvalActions.add(new JLabel("Process Selected: "));
         approvalActions.add(btnViewReason);
         approvalActions.add(new JLabel("|"));
         approvalActions.add(btnApprove);
@@ -87,7 +97,7 @@ public class AdminUI extends mainMenuFunctions {
         
         add(centerPanel, BorderLayout.CENTER);
 
-        // --- 3. Sidebar: Oversight Navigation (Read-Only Logic) ---
+        // --- 3. Sidebar: Oversight Navigation ---
         JPanel sidebar = new JPanel();
         sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
         sidebar.setPreferredSize(new Dimension(240, 0));
@@ -125,43 +135,53 @@ public class AdminUI extends mainMenuFunctions {
         btnApprove.addActionListener(e -> updateLeaveStatus("Approved"));
         btnReject.addActionListener(e -> updateLeaveStatus("Rejected"));
 
+        // OVERSIGHT LOGIC: Opening HR and IT in Read-Only Mode
         btnOverseeHR.addActionListener(e -> {
-            HRUI hr = new HRUI();
-            hr.disableEditing(); // Hides management buttons
+            HRUI hr = new HRUI(currentUser);
+            hr.disableEditing(); // Calls the method to hide Add/Edit/Delete
             hr.setVisible(true);
         });
 
-        btnOverseeFinance.addActionListener(e -> {
-            FinanceUI fin = new FinanceUI();
-            fin.setVisible(true);
-        });
-
         btnOverseeIT.addActionListener(e -> {
-            ITUI it = new ITUI();
-            it.setReadOnly(); // Unmasks passwords but prevents changes
+            ITUI it = new ITUI(currentUser);
+            it.disableEditing(); // Assuming ITUI also has this method
             it.setVisible(true);
         });
+
+        btnOverseeFinance.addActionListener(e -> new FinanceUI(currentUser).setVisible(true));
 
         btnLogout.addActionListener(e -> { 
             this.dispose(); 
             new LoginFrame().setVisible(true); 
         });
+        
+        this.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowActivated(java.awt.event.WindowEvent e) {
+                refreshLeaveTable();
+            }
+        });
     }
 
-    private void refreshLeaveTable() {
+    public void refreshLeaveTable() {
         leaveModel.setRowCount(0);
         List<LeaveRequest> requests = leaveDao.getAllRequests();
+        DateTimeFormatter displayFormat = DateTimeFormatter.ofPattern("MM-dd-yyyy");
+
         for (LeaveRequest lr : requests) {
-            // Only show Pending requests for Admin to action
             if (lr.getStatus().equalsIgnoreCase("Pending")) {
+                String startDisp = lr.getStartDate();
+                String endDisp = lr.getEndDate();
+
+                try {
+                    // Format dates from YYYY-MM-DD to MM-DD-YYYY for Admin view
+                    startDisp = LocalDate.parse(lr.getStartDate()).format(displayFormat);
+                    endDisp = LocalDate.parse(lr.getEndDate()).format(displayFormat);
+                } catch (Exception e) { /* keep original if error */ }
+
                 leaveModel.addRow(new Object[]{
-                    lr.getRequestId(), 
-                    lr.getEmployeeNumber(), 
-                    lr.getLeaveType(), 
-                    lr.getStartDate(), 
-                    lr.getEndDate(), 
-                    lr.getStatus(),
-                    lr.getReason() // Now populated
+                    lr.getRequestId(), lr.getEmployeeNumber(), lr.getLeaveType(), 
+                    startDisp, endDisp, lr.getStatus(), lr.getReason()
                 });
             }
         }
@@ -171,9 +191,15 @@ public class AdminUI extends mainMenuFunctions {
         int row = leaveTable.getSelectedRow();
         if (row != -1) {
             String id = leaveModel.getValueAt(row, 0).toString();
-            if (leaveDao.updateStatus(id, status)) {
-                JOptionPane.showMessageDialog(this, "Request successfully " + status);
-                refreshLeaveTable();
+            int confirm = JOptionPane.showConfirmDialog(this, 
+                "Are you sure you want to " + status + " Request #" + id + "?", 
+                "Confirm Action", JOptionPane.YES_NO_OPTION);
+            
+            if (confirm == JOptionPane.YES_OPTION) {
+                if (leaveDao.updateStatus(id, status)) {
+                    JOptionPane.showMessageDialog(this, "Request " + status + " successfully.");
+                    refreshLeaveTable();
+                }
             }
         } else {
             JOptionPane.showMessageDialog(this, "Please select a leave request first.");
@@ -183,21 +209,18 @@ public class AdminUI extends mainMenuFunctions {
     private void showFullReason() {
         int row = leaveTable.getSelectedRow();
         if (row != -1) {
-            String empId = leaveModel.getValueAt(row, 1).toString();
             String reason = leaveModel.getValueAt(row, 6).toString();
-            
             JTextArea area = new JTextArea(reason);
             area.setLineWrap(true);
             area.setWrapStyleWord(true);
             area.setEditable(false);
-            area.setBackground(null);
+            area.setFont(new Font("SansSerif", Font.PLAIN, 13));
             
             JScrollPane scroll = new JScrollPane(area);
-            scroll.setPreferredSize(new Dimension(300, 150));
-            
-            JOptionPane.showMessageDialog(this, scroll, "Reason for Request (Emp ID: " + empId + ")", JOptionPane.INFORMATION_MESSAGE);
+            scroll.setPreferredSize(new Dimension(350, 200));
+            JOptionPane.showMessageDialog(this, scroll, "Leave Request Reason", JOptionPane.PLAIN_MESSAGE);
         } else {
-            JOptionPane.showMessageDialog(this, "Please select a request to view reason.");
+            JOptionPane.showMessageDialog(this, "Select a request to view reason.");
         }
     }
 
@@ -206,6 +229,7 @@ public class AdminUI extends mainMenuFunctions {
         b.setAlignmentX(Component.CENTER_ALIGNMENT);
         b.setFocusPainted(false);
         b.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        b.setCursor(new Cursor(Cursor.HAND_CURSOR));
     }
 
     private void styleActionButton(JButton b, Color bg) {
