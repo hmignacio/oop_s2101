@@ -1,16 +1,29 @@
-# MotorPH Employee Portal (OOP)
+# **MotorPH Employee Portal (OOP)**
 
 Java application for employee and payroll management of MotorPH
 
 
-## Features
-- Manage Employee Data (create, delete, editing)
-- Attendance Tracking
-- Leave Request System  with Approval/Denial
-- Payroll Computation and Management
-- User Accounts Management
+## **List of Features**
 
-## Authors
+- Regular Employee
+  - Attendance Tracking (Time In/Time Out)
+  - Leave Request System (Request Filing Only)
+  - View Monthly Payslip
+
+- Finance Department
+  - Payroll Processing and Management
+
+- HR Department
+  - Manage Employee Records (Creation, Deletion, Editing, Refreshing)
+  - Leave Request System (with Approval/Denial, History)
+
+- IT Department
+  - User Accounts Management (with Accounts Creation, Deletion, Role Assignment, Credentials)
+
+- Administrators
+  - Administrative oversight for all features (System-wide)
+
+## **Authors**
   Hanna Mae Ignacio<br />
   Angel Faye Nogal<br />
   Vladimir Bernardo<br />
