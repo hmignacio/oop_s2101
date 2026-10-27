@@ -215,8 +215,8 @@ public class HRUI extends mainMenuFunctions {
         }
 
         private void populateFields(Employee emp) {
-            fields[0].setText(emp.getEmployeeNumber()); 
-            fields[0].setEditable(false); 
+            fields[0].setText(emp.getEmployeeNumber());
+            fields[0].setEnabled(false);
             fields[1].setText(emp.getLastName()); fields[2].setText(emp.getFirstName());
             fields[3].setText(emp.getBirthday()); fields[4].setText(emp.getAddress());
             fields[5].setText(emp.getPhoneNumber()); fields[6].setText(emp.getEmail());
