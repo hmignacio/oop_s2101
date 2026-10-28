@@ -1,0 +1,126 @@
+@startuml
+' --- Configuration ---
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+' --- Data Layer (Resources) ---
+package "Data_Layer_Resources" {
+    entity "employee.csv" as EmpCSV
+    entity "attendance.csv" as AttCSV
+    entity "leaves.csv" as LeaveCSV
+    entity "users.csv" as UserCSV
+}
+
+' --- Helper Layer (Utils) ---
+package "Helper_Layer_Utils" {
+    class Constants {
+        + {static} USER_CSV_PATH : String
+        + {static} EMP_CSV_PATH : String
+        + {static} ATTENDANCE_CSV_PATH : String
+        + {static} LEAVE_CSV_PATH : String
+    }
+}
+
+' --- Domain Layer (Models) ---
+package "Domain_Layer_Models" {
+    class Employee {
+        + String employeeNumber
+        + double hourlyRate
+        + toCSVString() : String
+    }
+    class Attendance {
+        + String employeeID
+        + String date
+        + String timeIn
+        + toCSVString() : String
+    }
+    class LeaveRequest {
+        + String requestId
+        + String status
+        + toCSVString() : String
+    }
+    class UserAccount {
+        + String employeeNo
+        + String role
+        + toCSVString() : String
+    }
+}
+
+' --- Abstraction Layer (Interfaces) ---
+package "Abstraction_Layer_Interfaces" {
+    interface EmployeeDao {
+        + getAllEmployees()
+    }
+    interface AttendanceDao {
+        + logAttendance()
+    }
+    interface LeaveDao {
+        + addRequest()
+        + updateStatus()
+    }
+    interface LoginDao {
+        + authenticate()
+    }
+}
+
+' --- Persistence Layer (DAO) ---
+package "Persistence_Layer_DAO" {
+    abstract class MainCSVDao {
+        # readAllLines() : List<String[]>
+        # writeAllLines()
+    }
+    class EmployeeCSVDao
+    class AttendanceCSVDao
+    class LeaveCSVDao
+    class LoginCSVDao
+}
+
+' --- Logic Layer (Service) ---
+package "Logic_Layer_Service" {
+    class PayrollService {
+        + calculateNetPay()
+        + calculateTotalHours()
+    }
+    class LeaveService {
+        + applyForLeave()
+        + processApproval()
+    }
+}
+
+' --- Interconnections ---
+
+' 1. Inheritance and Implementation
+EmployeeCSVDao --|> MainCSVDao
+AttendanceCSVDao --|> MainCSVDao
+LeaveCSVDao --|> MainCSVDao
+LoginCSVDao --|> MainCSVDao
+
+EmployeeCSVDao ..|> EmployeeDao
+AttendanceCSVDao ..|> AttendanceDao
+LeaveCSVDao ..|> LeaveDao
+LoginCSVDao ..|> LoginDao
+
+' 2. Resource Access via Utils
+MainCSVDao ..> Constants : "references paths"
+EmployeeCSVDao ..> EmpCSV : "I/O"
+AttendanceCSVDao ..> AttCSV : "I/O"
+LeaveCSVDao ..> LeaveCSV : "I/O"
+LoginCSVDao ..> UserCSV : "I/O"
+
+' 3. Data Mapping to Models
+EmployeeCSVDao ..> Employee : "instantiates"
+AttendanceCSVDao ..> Attendance : "instantiates"
+LeaveCSVDao ..> LeaveRequest : "instantiates"
+LoginCSVDao ..> UserAccount : "instantiates"
+
+' 4. Service Dependencies
+PayrollService --> EmployeeDao : "requests data"
+PayrollService --> AttendanceDao : "requests logs"
+PayrollService ..> Employee : "uses for math"
+
+LeaveService --> LeaveDao : "manages records"
+LeaveService ..> LeaveRequest : "updates status"
+
+@enduml
