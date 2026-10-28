@@ -26,7 +26,8 @@ public class HRUI extends mainMenuFunctions {
     private JTable employeeTable;
     private DefaultTableModel tableModel;
     private final EmployeeDao employeeDao; 
-    private final Employee currentUser;    
+    private final Employee currentUser;
+    private final EmployeeCSVDao employeeCsvDao = new EmployeeCSVDao();
     
     private JButton btnAdd, btnEdit, btnDelete;
     private JLabel lblHeader;
@@ -34,8 +35,7 @@ public class HRUI extends mainMenuFunctions {
     public HRUI(Employee emp) {
         super("MotorPH - HR Employee Management");
         this.currentUser = emp; 
-        this.employeeDao = new EmployeeCSVDao(); 
-        
+        this.employeeDao = new EmployeeCSVDao();
         initUI();
         
         if (lblHeader != null && currentUser != null) {
@@ -202,7 +202,14 @@ public class HRUI extends mainMenuFunctions {
                 gridPanel.add(fields[i]);
             }
 
-            if (emp != null) populateFields(emp);
+            if (emp != null) {
+                populateFields(emp);
+            }
+            else{
+                fields[0].setText(employeeCsvDao.generateNextEmployeeId());
+                fields[0].setEditable(false);
+            }
+                
 
             JButton btnSave = new JButton("SAVE RECORD");
             btnSave.setFont(new Font("SansSerif", Font.BOLD, 14));
