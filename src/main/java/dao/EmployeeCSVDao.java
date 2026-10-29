@@ -130,4 +130,29 @@ public class EmployeeCSVDao extends MainCSVDao implements EmployeeDao {
                 .collect(Collectors.toList());
         writeAllLines(lines, HEADER);
     }
+    
+    public String generateNextEmployeeId() {
+        List<Employee> employees = getAllEmployees();
+
+        int highestId = 10000;
+
+        for (Employee employee : employees) {
+            String employeeId = employee.getEmployeeNumber().trim();
+
+            try {
+                int currentId = Integer.parseInt(employeeId);
+
+                if (currentId > highestId) {
+                    highestId = currentId;
+                }
+
+            } catch (NumberFormatException e) {
+                System.err.println(
+                    "Skipping invalid Employee ID: " + employeeId
+                );
+            }
+        }
+
+        return String.valueOf(highestId + 1);
+    }
 }
