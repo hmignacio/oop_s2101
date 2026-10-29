@@ -26,6 +26,10 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 
+import javax.swing.*;
+import java.awt.*;
+import java.awt.print.PrinterException;
+
 public class RegularEmployeeUI extends mainMenuFunctions {
     private final Employee currentEmployee;
     private final AttendanceDao attendanceDao;
@@ -220,7 +224,10 @@ public class RegularEmployeeUI extends mainMenuFunctions {
                         + "<hr>"
                         + "<b>Earnings:</b>"
                         + "<table style='width: 100%; font-size: 11px;'>"
-                        + "<tr><td>Hours (" + totalHours + ") x Rate (" + hourlyRate + "):</td><td style='text-align: right;'>" + df.format(grossBasic) + "</td></tr>"
+                        + "<tr><td>Hours (" + df.format(totalHours)
+                        + ") x Rate (" + df.format(hourlyRate)
+                        + "):</td><td style='text-align: right;'>"
+                        + df.format(grossBasic) + "</td></tr>"
                         + "<tr><td>Allowances (Rice/Phone/Cloth):</td><td style='text-align: right;'>" + df.format(totalAllowances) + "</td></tr>"
                         + "<tr><td><b>Total Gross:</b></td><td style='text-align: right;'><b>PHP " + df.format(grossBasic + totalAllowances) + "</b></td></tr>"
                         + "</table>"
@@ -238,8 +245,77 @@ public class RegularEmployeeUI extends mainMenuFunctions {
                         + "<p style='font-size: 9px; text-align: center; color: #888;'>Generated for Employee ID: " + currentEmployee.getEmployeeNumber() + "</p>"
                         + "</body></html>";
 
-                JLabel lblPayslip = new JLabel(payslipHtml);
-                JOptionPane.showMessageDialog(this, lblPayslip, "Official Payslip Summary", JOptionPane.PLAIN_MESSAGE);
+                // Create HTML payslip viewer
+                JEditorPane payslipViewer = new JEditorPane();
+                payslipViewer.setContentType("text/html");
+                payslipViewer.setText(payslipHtml);
+                payslipViewer.setEditable(false);
+                payslipViewer.setCaretPosition(0);
+
+                // Set preferred size
+                payslipViewer.setPreferredSize(new Dimension(420, 520));
+
+                // Add scroll pane
+                JScrollPane scrollPane = new JScrollPane(payslipViewer);
+                scrollPane.setPreferredSize(new Dimension(440, 540));
+
+                // Create buttons
+                JButton btnPrint = new JButton("Print Payslip");
+                JButton btnClose = new JButton("Close");
+
+                // Create custom dialog
+                JDialog payslipDialog = new JDialog(
+                    SwingUtilities.getWindowAncestor(this),
+                    "Official Payslip Summary",
+                    Dialog.ModalityType.APPLICATION_MODAL
+                );
+
+                payslipDialog.setLayout(new BorderLayout());
+
+                // Add payslip content
+                payslipDialog.add(scrollPane, BorderLayout.CENTER);
+
+                // Create button panel
+                JPanel buttonPanel = new JPanel(
+                    new FlowLayout(FlowLayout.CENTER, 10, 10)
+                );
+
+                buttonPanel.add(btnPrint);
+                buttonPanel.add(btnClose);
+
+                payslipDialog.add(buttonPanel, BorderLayout.SOUTH);
+
+                // Print button action
+                btnPrint.addActionListener(e -> {
+                    try {
+                        boolean printed = payslipViewer.print();
+
+                        if (printed) {
+                            JOptionPane.showMessageDialog(
+                                payslipDialog,
+                                "Payslip sent to printer successfully!",
+                                "Print Payslip",
+                                JOptionPane.INFORMATION_MESSAGE
+                            );
+                        }
+
+                    } catch (PrinterException ex) {
+                        JOptionPane.showMessageDialog(
+                            payslipDialog,
+                            "Unable to print payslip: " + ex.getMessage(),
+                            "Printing Error",
+                            JOptionPane.ERROR_MESSAGE
+                        );
+                    }
+                });
+
+                // Close button action
+                btnClose.addActionListener(e -> payslipDialog.dispose());
+
+                // Configure dialog
+                payslipDialog.pack();
+                payslipDialog.setLocationRelativeTo(this);
+                payslipDialog.setVisible(true);
             }
         }
     }

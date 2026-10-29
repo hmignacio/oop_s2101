@@ -1,3 +1,4 @@
+
 /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
@@ -8,21 +9,17 @@ package view;
  *
  * @author Vladimir Bernardo
  */
-import model.Employee;
-import service.PayrollService;
-import javax.swing.*;
-import java.awt.*;
 
-/**
- * Displays the detailed salary breakdown for a specific employee.
- */
 import model.Employee;
 import service.PayrollService;
-import utils.Constants; // Use your Constants for accuracy
+import utils.Constants;
 import javax.swing.*;
 import java.awt.*;
 import java.text.DecimalFormat;
 
+/**
+ * Displays the detailed salary breakdown for a specific employee.
+ */
 public class PayslipFrame extends JFrame {
     
     private Employee employee;
