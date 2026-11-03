@@ -132,18 +132,7 @@ public class LoginFrame extends JFrame {
         String role = account.getRole();
 
         // Route the user to the correct window
-        if (role.equalsIgnoreCase("Admin")) {
-            new AdminUI(emp).setVisible(true);
-        } else if (role.equalsIgnoreCase("HR")) {
-            new HRUI(emp).setVisible(true);
-        } else if (role.equalsIgnoreCase("IT")) {
-            new ITUI(emp).setVisible(true);
-        } else if (role.equalsIgnoreCase("Finance")) {
-            new FinanceUI(emp).setVisible(true);
-        } else {
-            // Default to Regular Portal
-            new RegularEmployeeUI(emp).setVisible(true);
-        }
+        new RegularEmployeeUI(emp, role).setVisible(true);
         
         this.dispose(); 
     }
