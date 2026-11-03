@@ -386,20 +386,44 @@ public class RegularEmployeeUI extends mainMenuFunctions {
         switch (currentRole.toUpperCase(java.util.Locale.ROOT)) {
             case "HR":
                 managementButton = new JButton("HR Management");
-                managementButton.addActionListener(e -> new HRUI(currentEmployee).setVisible(true));
+                managementButton.addActionListener(e -> {
+                    HRUI hrDashboard = new HRUI(currentEmployee);
+                    hrDashboard.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                    hrDashboard.setVisible(true);
+                    this.setVisible(false);
+                });
                 break;
+
             case "FINANCE":
                 managementButton = new JButton("Finance Management");
-                managementButton.addActionListener(e -> new FinanceUI(currentEmployee).setVisible(true));
+                managementButton.addActionListener(e -> {
+                    FinanceUI financeDashboard = new FinanceUI(currentEmployee);
+                    financeDashboard.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                    financeDashboard.setVisible(true);
+                    this.setVisible(false);
+                });
                 break;
+
             case "IT":
                 managementButton = new JButton("IT Management");
-                managementButton.addActionListener(e -> new ITUI(currentEmployee).setVisible(true));
+                managementButton.addActionListener(e -> {
+                    ITUI itDashboard = new ITUI(currentEmployee);
+                    itDashboard.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                    itDashboard.setVisible(true);
+                    this.setVisible(false);
+                });
                 break;
+
             case "ADMIN":
                 managementButton = new JButton("Admin Management");
-                managementButton.addActionListener(e -> new AdminUI(currentEmployee).setVisible(true));
+                managementButton.addActionListener(e -> {
+                    AdminUI adminDashboard = new AdminUI(currentEmployee);
+                    adminDashboard.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                    adminDashboard.setVisible(true);
+                    this.setVisible(false);
+                });
                 break;
+
             default:
                 return; // Regular employees have no management button.
         }

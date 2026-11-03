@@ -87,6 +87,7 @@ public class HRUI extends mainMenuFunctions {
         btnDelete = new JButton("Delete Employee");
         JButton btnRefresh = new JButton("Refresh");
         JButton btnLogout = new JButton("Logout");
+        JButton btnBack = new JButton("Back to Main Dashboard");
 
         styleToolbarButton(btnAdd, new Color(34, 139, 34)); 
         styleToolbarButton(btnDelete, new Color(178, 34, 34));
@@ -97,11 +98,25 @@ public class HRUI extends mainMenuFunctions {
         toolbar.add(btnDelete);
         toolbar.add(new JSeparator(SwingConstants.VERTICAL));
         toolbar.add(btnRefresh);
+        toolbar.add(btnBack);
         toolbar.add(btnLogout);
         add(toolbar, BorderLayout.SOUTH);
 
         // --- 4. Listeners ---
         btnRefresh.addActionListener(e -> refreshTable());
+        btnBack.addActionListener(e -> {
+            for (Window window : Window.getWindows()) {
+                if (window instanceof RegularEmployeeUI && window.isDisplayable()) {
+                    window.setVisible(true);
+                    window.toFront();
+                    dispose();
+                    return;
+                }
+            }
+            JOptionPane.showMessageDialog(this,
+                    "Main Employee Dashboard is not available.",
+                    "Navigation Error", JOptionPane.WARNING_MESSAGE);
+        });
         btnLogout.addActionListener(e -> { this.dispose(); new LoginFrame().setVisible(true); });
         
         btnAdd.addActionListener(e -> { 
