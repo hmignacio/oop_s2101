@@ -32,15 +32,18 @@ import java.awt.print.PrinterException;
 
 public class RegularEmployeeUI extends mainMenuFunctions {
     private final Employee currentEmployee;
+    // Authenticated role determines which management option is displayed.
+    private final String currentRole;
     private final AttendanceDao attendanceDao;
     private final LeaveDao leaveDao; 
     private JTable attendanceTable;
     private JButton btnTimeIn, btnTimeOut;
     private JLabel lblClock;
 
-    public RegularEmployeeUI(Employee emp) {
+    public RegularEmployeeUI(Employee emp, String role) {
         super("MotorPH - Employee Portal");
         this.currentEmployee = emp;
+        this.currentRole = role == null ? "" : role.trim();
         this.attendanceDao = new AttendanceCSVDao();
         this.leaveDao = new LeaveCSVDao(); 
         initUI();
@@ -98,9 +101,11 @@ public class RegularEmployeeUI extends mainMenuFunctions {
         sidebar.add(btnLeaveHistory);
         sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
         sidebar.add(btnViewPayslip);
-        sidebar.add(Box.createVerticalGlue()); 
+        addRoleSpecificButtons(sidebar);
+        sidebar.add(Box.createVerticalGlue());
         sidebar.add(btnLogout);
 
+       
         // --- 3. Content ---
         attendanceTable = new JTable(new DefaultTableModel(new String[]{"Date", "Time In", "Time Out"}, 0));
         refreshAttendanceTable(); 
@@ -373,6 +378,34 @@ public class RegularEmployeeUI extends mainMenuFunctions {
         btn.setOpaque(true); 
         btn.setBorderPainted(false);
     }
-}
     
+    // Show additional management access for authorized roles.
+    private void addRoleSpecificButtons(JPanel sidebar) {
+        JButton managementButton;
 
+        switch (currentRole.toUpperCase(java.util.Locale.ROOT)) {
+            case "HR":
+                managementButton = new JButton("HR Management");
+                managementButton.addActionListener(e -> new HRUI(currentEmployee).setVisible(true));
+                break;
+            case "FINANCE":
+                managementButton = new JButton("Finance Management");
+                managementButton.addActionListener(e -> new FinanceUI(currentEmployee).setVisible(true));
+                break;
+            case "IT":
+                managementButton = new JButton("IT Management");
+                managementButton.addActionListener(e -> new ITUI(currentEmployee).setVisible(true));
+                break;
+            case "ADMIN":
+                managementButton = new JButton("Admin Management");
+                managementButton.addActionListener(e -> new AdminUI(currentEmployee).setVisible(true));
+                break;
+            default:
+                return; // Regular employees have no management button.
+        }
+
+        styleSidebarButton(managementButton, new Color(70, 70, 120));
+        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
+        sidebar.add(managementButton);
+    }
+}
