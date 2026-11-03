@@ -1,30 +1,53 @@
-# **MotorPH Employee Portal (OOP)**
+# MotorPH Employee Portal (OOP)
 
-Java application for employee and payroll management of MotorPH
+A Java application for employee and payroll management of MotorPH.
+
+## Tools Used
+
+- **Programming Language:** Java 25
+- **IDE:** Apache NetBeans IDE 24
+- **Build Tool:** Apache Maven
+- **GUI Framework:** Java Swing
+- **Data Storage:** CSV Files
+- **Version Control:** Git and GitHub
+
+## List of Features
+
+### Regular Employee
+- Attendance tracking (Time in/Time out)
+- Leave request system (Request filing and view own history leave )
+- View monthly payslip
+
+### Finance Department
+- Payroll processing and management
+
+### HR Department
+- Manage employee records (creation, deletion, editing, refreshing)
 
 
-## **List of Features**
+### IT Department
+- User accounts management (account creation, deletion, role assignment, credentials)
 
-- Regular Employee
-  - Attendance Tracking (Time In/Time Out)
-  - Leave Request System (Request Filing Only)
-  - View Monthly Payslip
+### Administrators
+- Administrative oversight for all features
 
-- Finance Department
-  - Payroll Processing and Management
+## Testing Credentials
 
-- HR Department
-  - Manage Employee Records (Creation, Deletion, Editing, Refreshing)
-  - Leave Request System (with Approval/Denial, History)
+The following accounts are provided for testing the application's features.
 
-- IT Department
-  - User Accounts Management (with Accounts Creation, Deletion, Role Assignment, Credentials)
+| Username | Password | Role |
+|----------|----------|------|
+| 10002 | user456 | Admin |
+| 10003 | pass789 | Finance |
+| 10005 | user123 | IT |
+| 10006 | cde123 | HR |
+| 10018 | jee752 | Regular Employee |
 
-- Administrators
-  - Administrative oversight for all features (System-wide)
+**Note:** These credentials are intended for testing purposes only.
 
-## **Authors**
-  Hanna Mae Ignacio<br />
-  Angel Faye Nogal<br />
-  Vladimir Bernardo<br />
-  Aristides Panlilio<br />
+## Authors
+
+- Hanna Mae Ignacio
+- Angel Faye Nogal
+- Vladimir Bernardo
+- Aristides Panlilio
