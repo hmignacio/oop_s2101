@@ -4,11 +4,37 @@
  */
 package model;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
+import java.util.Locale;
+import java.util.regex.Pattern;
+
 /**
  *
  * @author Vladimir Bernardo
  */
 public class Employee {
+    private static final Pattern EMPLOYEE_NUMBER_PATTERN = Pattern.compile("\\d+");
+    private static final Pattern PHONE_NUMBER_PATTERN =
+            Pattern.compile("(?:\\d{3}-\\d{3}-\\d{3}|\\d{4}-\\d{3}-\\d{4})");
+    private static final Pattern EMAIL_PATTERN =
+            Pattern.compile("[A-Za-z0-9+_.-]+@[^\\s@]+");
+    private static final Pattern SSS_NUMBER_PATTERN = Pattern.compile("\\d{2}-\\d{7}-\\d");
+    private static final Pattern PHILHEALTH_NUMBER_PATTERN =
+            Pattern.compile("(?:\\d{12}|\\d{4}-\\d{4}-\\d{4})");
+    private static final Pattern TIN_NUMBER_PATTERN =
+            Pattern.compile("\\d{3}-\\d{3}-\\d{3}-\\d{3}");
+    private static final Pattern PAGIBIG_NUMBER_PATTERN =
+            Pattern.compile("(?:\\d{12}|\\d{4}-\\d{4}-\\d{4})");
+    private static final DateTimeFormatter BIRTHDAY_SLASH_FORMAT =
+            DateTimeFormatter.ofPattern("MM/dd/uuuu", Locale.ROOT)
+                    .withResolverStyle(ResolverStyle.STRICT);
+    private static final DateTimeFormatter BIRTHDAY_DASH_FORMAT =
+            DateTimeFormatter.ofPattern("MM-dd-uuuu", Locale.ROOT)
+                    .withResolverStyle(ResolverStyle.STRICT);
+
     // Basic Information
     private String employeeNumber;
     private String lastName;
@@ -137,24 +163,126 @@ public class Employee {
     public double getHourlyRate() { return hourlyRate; }
 
     // --- Setters ---
-    public void setEmployeeNumber(String employeeNumber) { this.employeeNumber = employeeNumber; }
-    public void setLastName(String lastName) { this.lastName = lastName; }
-    public void setFirstName(String firstName) { this.firstName = firstName; }
-    public void setBirthday(String birthday) { this.birthday = birthday; }
-    public void setAddress(String address) { this.address = address; }
-    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
-    public void setEmail(String email) { this.email = email; }
-    public void setSssNumber(String sssNumber) { this.sssNumber = sssNumber; }
-    public void setPhilhealthNumber(String philhealthNumber) { this.philhealthNumber = philhealthNumber; }
-    public void setTinNumber(String tinNumber) { this.tinNumber = tinNumber; }
-    public void setPagibigNumber(String pagibigNumber) { this.pagibigNumber = pagibigNumber; }
-    public void setStatus(String status) { this.status = status; }
-    public void setPosition(String position) { this.position = position; }
-    public void setImmediateSupervisor(String immediateSupervisor) { this.immediateSupervisor = immediateSupervisor; }
-    public void setBasicSalary(double basicSalary) { this.basicSalary = basicSalary; }
-    public void setRiceSubsidy(double riceSubsidy) { this.riceSubsidy = riceSubsidy; }
-    public void setPhoneAllowance(double phoneAllowance) { this.phoneAllowance = phoneAllowance; }
-    public void setClothingAllowance(double clothingAllowance) { this.clothingAllowance = clothingAllowance; }
-    public void setGrossSalary(double grossSalary) { this.grossSalary = grossSalary; } // Renamed for consistency
-    public void setHourlyRate(double hourlyRate) { this.hourlyRate = hourlyRate; }
+    public void setEmployeeNumber(String employeeNumber) {
+        String value = requireString(employeeNumber, "Employee number");
+        requirePattern(value, EMPLOYEE_NUMBER_PATTERN, "Employee number must contain digits only.");
+        this.employeeNumber = value;
+    }
+
+    public void setLastName(String lastName) { this.lastName = requireString(lastName, "Last name"); }
+    public void setFirstName(String firstName) { this.firstName = requireString(firstName, "First name"); }
+
+    public void setBirthday(String birthday) {
+        String value = requireString(birthday, "Birthday");
+        if (!isValidBirthday(value)) {
+            throw new IllegalArgumentException(
+                    "Birthday must be a valid date in MM/dd/yyyy or MM-dd-yyyy format.");
+        }
+        this.birthday = value;
+    }
+
+    public void setAddress(String address) { this.address = requireString(address, "Address"); }
+
+    public void setPhoneNumber(String phoneNumber) {
+        String value = requireString(phoneNumber, "Phone number");
+        requirePattern(value, PHONE_NUMBER_PATTERN,
+                "Phone number must use ###-###-### or ####-###-#### format.");
+        this.phoneNumber = value;
+    }
+
+    public void setEmail(String email) {
+        String value = requireString(email, "Email");
+        requirePattern(value, EMAIL_PATTERN, "Email must be a valid address without whitespace.");
+        this.email = value;
+    }
+
+    public void setSssNumber(String sssNumber) {
+        String value = requireString(sssNumber, "SSS number");
+        requirePattern(value, SSS_NUMBER_PATTERN, "SSS number must use ##-#######-# format.");
+        this.sssNumber = value;
+    }
+
+    public void setPhilhealthNumber(String philhealthNumber) {
+        String value = requireString(philhealthNumber, "PhilHealth number");
+        requirePattern(value, PHILHEALTH_NUMBER_PATTERN,
+                "PhilHealth number must contain 12 digits, optionally formatted as ####-####-####.");
+        this.philhealthNumber = value;
+    }
+
+    public void setTinNumber(String tinNumber) {
+        String value = requireString(tinNumber, "TIN");
+        requirePattern(value, TIN_NUMBER_PATTERN, "TIN must use ###-###-###-### format.");
+        this.tinNumber = value;
+    }
+
+    public void setPagibigNumber(String pagibigNumber) {
+        String value = requireString(pagibigNumber, "Pag-IBIG number");
+        requirePattern(value, PAGIBIG_NUMBER_PATTERN,
+                "Pag-IBIG number must contain 12 digits, optionally formatted as ####-####-####.");
+        this.pagibigNumber = value;
+    }
+
+    public void setStatus(String status) { this.status = requireString(status, "Status"); }
+    public void setPosition(String position) { this.position = requireString(position, "Position"); }
+    public void setImmediateSupervisor(String immediateSupervisor) {
+        this.immediateSupervisor = requireString(immediateSupervisor, "Immediate supervisor");
+    }
+
+    public void setBasicSalary(double basicSalary) {
+        this.basicSalary = requireNonNegativeFinite(basicSalary, "Basic salary");
+    }
+
+    public void setRiceSubsidy(double riceSubsidy) {
+        this.riceSubsidy = requireNonNegativeFinite(riceSubsidy, "Rice subsidy");
+    }
+
+    public void setPhoneAllowance(double phoneAllowance) {
+        this.phoneAllowance = requireNonNegativeFinite(phoneAllowance, "Phone allowance");
+    }
+
+    public void setClothingAllowance(double clothingAllowance) {
+        this.clothingAllowance = requireNonNegativeFinite(clothingAllowance, "Clothing allowance");
+    }
+
+    public void setGrossSalary(double grossSalary) {
+        this.grossSalary = requireNonNegativeFinite(grossSalary, "Gross salary");
+    }
+
+    public void setHourlyRate(double hourlyRate) {
+        this.hourlyRate = requireNonNegativeFinite(hourlyRate, "Hourly rate");
+    }
+
+    private static String requireString(String value, String fieldName) {
+        if (value == null || value.trim().isEmpty()) {
+            throw new IllegalArgumentException(fieldName + " cannot be null or blank.");
+        }
+        return value.trim();
+    }
+
+    private static void requirePattern(String value, Pattern pattern, String message) {
+        if (!pattern.matcher(value).matches()) {
+            throw new IllegalArgumentException(message);
+        }
+    }
+
+    private static boolean isValidBirthday(String value) {
+        try {
+            LocalDate.parse(value, BIRTHDAY_SLASH_FORMAT);
+            return true;
+        } catch (DateTimeParseException slashFormatFailure) {
+            try {
+                LocalDate.parse(value, BIRTHDAY_DASH_FORMAT);
+                return true;
+            } catch (DateTimeParseException dashFormatFailure) {
+                return false;
+            }
+        }
+    }
+
+    private static double requireNonNegativeFinite(double value, String fieldName) {
+        if (!Double.isFinite(value) || value < 0) {
+            throw new IllegalArgumentException(fieldName + " must be a finite, non-negative number.");
+        }
+        return value;
+    }
 }

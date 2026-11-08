@@ -28,7 +28,7 @@ public class LeaveCSVDao extends MainCSVDao implements LeaveDao {
     @Override
     public List<LeaveRequest> getAllRequests() {
         List<LeaveRequest> list = new ArrayList<>();
-        List<String[]> rows = readAllLines();
+        List<String[]> rows = readAllLines(false);
         for (String[] row : rows) {
             if (row.length >= 7) {
                 list.add(new LeaveRequest(
@@ -54,14 +54,9 @@ public class LeaveCSVDao extends MainCSVDao implements LeaveDao {
 
     @Override
     public boolean addLeaveRequest(LeaveRequest request) {
-        try {
-            List<LeaveRequest> all = getAllRequests();
-            all.add(request);
-            saveAll(all);
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
+        List<LeaveRequest> all = getAllRequests();
+        all.add(request);
+        return saveAll(all);
     }
 
     /**
@@ -77,6 +72,9 @@ public class LeaveCSVDao extends MainCSVDao implements LeaveDao {
         
         for (LeaveRequest lr : all) {
             if (lr.getRequestId().trim().equals(requestId.trim())) {
+                if (!lr.getStatus().equalsIgnoreCase("Pending")) {
+                    return false;
+                }
                 lr.setStatus(status);
                 found = true;
                 break;
@@ -84,10 +82,10 @@ public class LeaveCSVDao extends MainCSVDao implements LeaveDao {
         }
         
         if (found) {
-            saveAll(all);
+            return saveAll(all);
         }
         
-        return found; 
+        return false;
     }
     
     @Override
@@ -101,25 +99,33 @@ public class LeaveCSVDao extends MainCSVDao implements LeaveDao {
 
         // Logic: if the size decreased, we successfully found and removed the record
         if (remainingRequests.size() < allRequests.size()) {
-            saveAll(remainingRequests); // Write the smaller list back to CSV
-            return true;
+            return saveAll(remainingRequests);
         }
         
         return false; // Request ID not found
     }
 
-    private void saveAll(List<LeaveRequest> list) {
+    private boolean saveAll(List<LeaveRequest> list) {
         List<String> lines = list.stream()
                 .map(lr -> String.join(",", 
-                    lr.getRequestId(),
-                    lr.getEmployeeNumber(),
-                    lr.getLeaveType(),
-                    lr.getStartDate(),
-                    lr.getEndDate(),
-                    lr.getStatus(),
-                    lr.getReason()
+                    csvField(lr.getRequestId()),
+                    csvField(lr.getEmployeeNumber()),
+                    csvField(lr.getLeaveType()),
+                    csvField(lr.getStartDate()),
+                    csvField(lr.getEndDate()),
+                    csvField(lr.getStatus()),
+                    csvField(lr.getReason())
                 ))
                 .collect(Collectors.toList());
-        writeAllLines(lines, HEADER);
+        return writeAllLinesChecked(lines, HEADER);
+    }
+
+    private String csvField(String value) {
+        String escaped = value == null ? "" : value.replace("\"", "\"\"");
+        if (escaped.contains(",") || escaped.contains("\"")
+                || escaped.contains("\n") || escaped.contains("\r")) {
+            return "\"" + escaped + "\"";
+        }
+        return escaped;
     }
 }

@@ -19,4 +19,5 @@ RequestId,EmployeeNumber,LeaveType,StartDate,EndDate,Status,Reason
 86938,10035,Sick Leave,03-09-2026,03-10-2026,Approved,soar throat
 40,10008,Vacation Leave,2026-03-25,2026-03-25,Approved,hospital
 7062,10008,Emergency Leave,2026-03-30,2026-03-30,Rejected,checkup
-LR-B29E,10008,Vacation Leave,2026-11-13,2026-11-16,Pending,out of town
+LR-B29E,10008,Vacation Leave,2026-11-13,2026-11-16,Approved,out of town
+LR-5BD4,10008,Vacation Leave,2026-11-04,2026-11-20,Pending,dsvfg

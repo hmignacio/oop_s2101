@@ -86,16 +86,7 @@ public class FinanceUI extends mainMenuFunctions {
             }
         });
 
-        btnLogout.addActionListener(e -> {
-            // Dispose the hidden employee portal too, to avoid a stale session.
-            for (Window window : Window.getWindows()) {
-                if (window instanceof RegularEmployeeUI && window.isDisplayable()) {
-                    window.dispose();
-                }
-            }
-            this.dispose();
-            new LoginFrame().setVisible(true);
-        });
+        btnLogout.addActionListener(e -> logout());
     }
 
     private void returnToMainDashboard() {
@@ -172,7 +163,8 @@ public class FinanceUI extends mainMenuFunctions {
                         "No records found for " + monthCombo.getSelectedItem() + " " + selYear);
             } else {
                 double actualHours = payrollService.calculateTotalHours(filtered);
-                new PayslipFrame(emp, actualHours).setVisible(true);
+                new PayslipFrame(emp, payrollService.calculatePayroll(emp, actualHours),
+                        selMonth, selYear).setVisible(true);
             }
         }
     }

@@ -51,18 +51,18 @@ public class LeaveRequestFrame extends JFrame {
         gbc.gridx = 1; mainPanel.add(comboType, gbc);
 
         // Date Settings
-        DatePickerSettings st = new DatePickerSettings();
-        st.setFormatForDatesCommonEra("MM-dd-yyyy");
-        st.setAllowKeyboardEditing(false);
-
         // Row 1: Start Date
         gbc.gridx = 0; gbc.gridy = 1; mainPanel.add(new JLabel("Start Date:"), gbc);
-        dateStart = new DatePicker(st.copySettings());
+        DatePickerSettings startSettings = createDatePickerSettings();
+        dateStart = new DatePicker(startSettings);
+        startSettings.setDateRangeLimits(LocalDate.now(), null);
         gbc.gridx = 1; mainPanel.add(dateStart, gbc);
 
         // Row 2: End Date
         gbc.gridx = 0; gbc.gridy = 2; mainPanel.add(new JLabel("End Date:"), gbc);
-        dateEnd = new DatePicker(st.copySettings());
+        DatePickerSettings endSettings = createDatePickerSettings();
+        dateEnd = new DatePicker(endSettings);
+        endSettings.setDateRangeLimits(LocalDate.now(), null);
         gbc.gridx = 1; mainPanel.add(dateEnd, gbc);
 
         // Row 3: Reason
@@ -93,6 +93,13 @@ public class LeaveRequestFrame extends JFrame {
                 return;
             }
 
+            if (start.isBefore(today) || end.isBefore(today)) {
+                JOptionPane.showMessageDialog(this,
+                        "Leave dates cannot be before today.",
+                        "Past Date Not Allowed", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
             // 2. NEW DATE SEQUENCE VALIDATION
             // Check if end date comes BEFORE start date
             if (end.isBefore(start)) {
@@ -106,11 +113,10 @@ public class LeaveRequestFrame extends JFrame {
             String errorMsg = "";
 
             if (type.contains("Sick") || type.contains("Emergency")) {
-                if (diff >= -7 && diff <= 7) allowed = true;
+                if (diff <= 7) allowed = true;
                 else errorMsg = type + " must be filed within 7 days of occurrence.";
             } else {
-                if (diff >= -7) allowed = true;
-                else errorMsg = "Vacation Leave must be filed at least 7 days before or for future dates.";
+                allowed = true;
             }
 
             if (allowed) {
@@ -119,6 +125,10 @@ public class LeaveRequestFrame extends JFrame {
                 if (leaveDao.addLeaveRequest(lr)) {
                     JOptionPane.showMessageDialog(this, "Application submitted successfully!");
                     this.dispose();
+                } else {
+                    JOptionPane.showMessageDialog(this,
+                            "The leave request could not be saved. Please try again.",
+                            "Submission Failed", JOptionPane.ERROR_MESSAGE);
                 }
             } else {
                 JOptionPane.showMessageDialog(this, errorMsg, "Policy Violation", JOptionPane.WARNING_MESSAGE);
@@ -133,5 +143,12 @@ public class LeaveRequestFrame extends JFrame {
         // while ensuring all components fit perfectly.
         pack(); 
         setLocationRelativeTo(null);
+    }
+
+    private DatePickerSettings createDatePickerSettings() {
+        DatePickerSettings settings = new DatePickerSettings();
+        settings.setFormatForDatesCommonEra("MM-dd-yyyy");
+        settings.setAllowKeyboardEditing(true);
+        return settings;
     }
 }

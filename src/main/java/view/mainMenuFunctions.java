@@ -37,4 +37,11 @@ public abstract class mainMenuFunctions extends JFrame {
      * MUST implement this to build its specific screen.
      */
     protected abstract void initUI();
+
+    protected final void logout() {
+        for (Window window : Window.getWindows()) {
+            window.dispose();
+        }
+        new LoginFrame().setVisible(true);
+    }
 }

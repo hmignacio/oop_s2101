@@ -22,4 +22,5 @@ public interface LoginDao {
     List<UserAccount> getAllAccounts();
     
     boolean updateRole(String employeeId, String newRole);
+    boolean activateAccount(String employeeId);
 }
