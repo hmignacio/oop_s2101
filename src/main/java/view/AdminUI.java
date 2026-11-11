@@ -123,17 +123,7 @@ public class AdminUI extends mainMenuFunctions {
         });
         btnOverseeFinance.addActionListener(e -> new FinanceUI(currentUser).setVisible(true));
 
-        btnBack.addActionListener(e -> {
-            for (Window window : Window.getWindows()) {
-                if (window instanceof RegularEmployeeUI && window.isDisplayable()) {
-                    window.setVisible(true);
-                    window.toFront();
-                    this.dispose();
-                    return;
-                }
-            }
-            JOptionPane.showMessageDialog(this, "Main Employee Dashboard was not found.");
-        });
+        btnBack.addActionListener(e -> returnToMainDashboard());
 
         btnLogout.addActionListener(e -> {
             for (Window window : Window.getWindows()) {
@@ -149,6 +139,16 @@ public class AdminUI extends mainMenuFunctions {
             @Override
             public void windowActivated(java.awt.event.WindowEvent e) {
                 refreshLeaveTable();
+            }
+        });
+        
+        // Return to Main Dashboard when X is clicked
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+
+        this.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                returnToMainDashboard();
             }
         });
     }
@@ -222,5 +222,20 @@ public class AdminUI extends mainMenuFunctions {
         b.setOpaque(true);
         b.setBorderPainted(false);
         b.setFont(new Font("SansSerif", Font.BOLD, 12));
+    }
+    
+        private void returnToMainDashboard() {
+        for (Window window : Window.getWindows()) {
+            if (window instanceof RegularEmployeeUI && window.isDisplayable()) {
+                window.setVisible(true);
+                window.toFront();
+                window.requestFocus();
+                this.dispose();
+                return;
+            }
+        }
+
+        JOptionPane.showMessageDialog(this,
+            "Main Employee Dashboard was not found.");
     }
 }

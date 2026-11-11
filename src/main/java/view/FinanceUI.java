@@ -63,14 +63,12 @@ public class FinanceUI extends mainMenuFunctions {
         JButton btnBack = new JButton("Back to Main Dashboard");
         JButton btnGeneratePayslip = new JButton("View Detailed Payslip");
         JButton btnRefresh = new JButton("Refresh List");
-        JButton btnLogout = new JButton("Logout");
 
         btnGeneratePayslip.setBackground(new Color(46, 139, 87));
 
         actionPanel.add(btnBack);
         actionPanel.add(btnRefresh);
         actionPanel.add(btnGeneratePayslip);
-        actionPanel.add(btnLogout);
         add(actionPanel, BorderLayout.SOUTH);
 
         // --- 4. Event Listeners ---
@@ -86,30 +84,33 @@ public class FinanceUI extends mainMenuFunctions {
             }
         });
 
-        btnLogout.addActionListener(e -> {
-            // Dispose the hidden employee portal too, to avoid a stale session.
-            for (Window window : Window.getWindows()) {
-                if (window instanceof RegularEmployeeUI && window.isDisplayable()) {
-                    window.dispose();
-                }
+        
+        // Return to Main Dashboard when X is clicked
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+
+        this.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                returnToMainDashboard();
             }
-            this.dispose();
-            new LoginFrame().setVisible(true);
         });
     }
 
-    private void returnToMainDashboard() {
+        private void returnToMainDashboard() {
         for (Window window : Window.getWindows()) {
             if (window instanceof RegularEmployeeUI && window.isDisplayable()) {
                 window.setVisible(true);
                 window.toFront();
+                window.requestFocus();
                 this.dispose();
                 return;
             }
         }
+
         JOptionPane.showMessageDialog(this,
                 "Main Employee Dashboard was not found. Please log in again.",
-                "Navigation Error", JOptionPane.WARNING_MESSAGE);
+                "Navigation Error",
+                JOptionPane.WARNING_MESSAGE);
     }
 
     private void refreshTable() {
