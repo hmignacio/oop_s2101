@@ -4,6 +4,8 @@
  */
 package model;
 
+import java.util.Locale;
+
 /**
  *
  * @author Vladimir Bernardo
@@ -12,14 +14,21 @@ public class UserAccount {
     private final String employeeNo;
     private String password;
     private String role; // e.g., "Admin", "HR", "IT", "Regular", "Finance"
+    private String status;
 
     /**
      * Standard Constructor used during the Login process.
      */
     public UserAccount(String employeeNo, String password, String role) {
+        this(employeeNo, password, role, "ACTIVE");
+    }
+
+    public UserAccount(String employeeNo, String password, String role, String status) {
         this.employeeNo = employeeNo != null ? employeeNo.trim() : "";
         this.password = password != null ? password.trim() : "";
         this.role = role != null ? role.trim() : "";
+        this.status = status != null && !status.trim().isEmpty()
+                ? status.trim().toUpperCase(Locale.ROOT) : "ACTIVE";
     }
 
     /**
@@ -31,11 +40,14 @@ public class UserAccount {
             this.employeeNo = data[0].trim();
             this.password = data[1].trim();
             this.role = data[2].trim();
+            this.status = data.length >= 4 && !data[3].trim().isEmpty()
+                    ? data[3].trim().toUpperCase(Locale.ROOT) : "ACTIVE";
         } else {
             // Fallback for malformed data
             this.employeeNo = "";
             this.password = "";
             this.role = "Regular";
+            this.status = "ACTIVE";
         }
     }
 
@@ -44,7 +56,17 @@ public class UserAccount {
      * Used by LoginCSVDao when updating passwords or roles.
      */
     public String toCSVString() {
-        return String.join(",", employeeNo, password, role);
+        return String.join(",", csvField(employeeNo), csvField(password),
+                csvField(role), csvField(status));
+    }
+
+    private String csvField(String value) {
+        String escaped = value == null ? "" : value.replace("\"", "\"\"");
+        if (escaped.contains(",") || escaped.contains("\"")
+                || escaped.contains("\n") || escaped.contains("\r")) {
+            return "\"" + escaped + "\"";
+        }
+        return escaped;
     }
     
     // --- Getters and Setters ---
@@ -72,5 +94,13 @@ public class UserAccount {
 
     public void setRole(String role) { 
         this.role = role; 
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status == null ? "" : status.trim().toUpperCase(Locale.ROOT);
     }
 }
