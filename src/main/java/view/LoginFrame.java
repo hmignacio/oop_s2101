@@ -91,6 +91,9 @@ public class LoginFrame extends JFrame {
         loginButton.addActionListener(this::handleLogin);
         formPanel.add(loginButton);
 
+        // Allow Enter key to submit login credentials
+        getRootPane().setDefaultButton(loginButton);
+
         mainPanel.add(headerPanel, BorderLayout.NORTH);
         mainPanel.add(formPanel, BorderLayout.CENTER);
 

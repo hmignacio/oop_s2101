@@ -17,7 +17,6 @@ RequestId,EmployeeNumber,LeaveType,StartDate,EndDate,Status,Reason
 62965,10027,Vacation Leave,08-28-2026,09-23-2026,Rejected,gusto ko lang
 2917,10008,Emergency Leave,03-16-2026,03-17-2026,Rejected,family in hospital. Need to be there for care andfinancial needs
 86938,10035,Sick Leave,03-09-2026,03-10-2026,Approved,soar throat
-40,10008,Vacation Leave,2026-03-25,2026-03-25,Approved,hospital
-7062,10008,Emergency Leave,2026-03-30,2026-03-30,Rejected,checkup
-LR-B29E,10008,Vacation Leave,2026-11-13,2026-11-16,Approved,out of town
-LR-5BD4,10008,Vacation Leave,2026-11-04,2026-11-20,Pending,dsvfg
+LR-A1C5,10005,Sick Leave,11-12-2026,11-12-2026,Pending,sick
+LR-6419,10005,Vacation Leave,11-19-2026,11-19-2026,Pending,sickkkk
+LR-4BED,10005,Sick Leave,11-13-2026,11-13-2026,Pending,hospital

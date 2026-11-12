@@ -156,7 +156,7 @@ public class HRUI extends mainMenuFunctions {
         btnEdit = new JButton("Edit Selected");
         btnDelete = new JButton("Delete Employee");
         JButton btnRefresh = new JButton("Refresh");
-        JButton btnLogout = new JButton("Logout");
+
         JButton btnBack = new JButton("Back to Main Dashboard");
 
         styleToolbarButton(btnAdd, new Color(34, 139, 34)); 
@@ -169,25 +169,12 @@ public class HRUI extends mainMenuFunctions {
         toolbar.add(new JSeparator(SwingConstants.VERTICAL));
         toolbar.add(btnRefresh);
         toolbar.add(btnBack);
-        toolbar.add(btnLogout);
         add(toolbar, BorderLayout.SOUTH);
 
         // --- 4. Listeners ---
         btnRefresh.addActionListener(e -> refreshTable());
-        btnBack.addActionListener(e -> {
-            for (Window window : Window.getWindows()) {
-                if (window instanceof RegularEmployeeUI && window.isDisplayable()) {
-                    window.setVisible(true);
-                    window.toFront();
-                    dispose();
-                    return;
-                }
-            }
-            JOptionPane.showMessageDialog(this,
-                    "Main Employee Dashboard is not available.",
-                    "Navigation Error", JOptionPane.WARNING_MESSAGE);
-        });
-        btnLogout.addActionListener(e -> logout());
+        btnBack.addActionListener(e -> returnToMainDashboard());
+        
         
         btnAdd.addActionListener(e -> { 
             new EmployeeDialog(this, null).setVisible(true); 
@@ -223,6 +210,32 @@ public class HRUI extends mainMenuFunctions {
                 JOptionPane.showMessageDialog(this, Constants.NO_SELECTION_ERROR);
             }
         });
+        
+        // Return to Main Dashboard when X is clicked
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+
+        this.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                returnToMainDashboard();
+            }
+        });
+    }
+        private void returnToMainDashboard() {
+        for (Window window : Window.getWindows()) {
+            if (window instanceof RegularEmployeeUI && window.isDisplayable()) {
+                window.setVisible(true);
+                window.toFront();
+                window.requestFocus();
+                this.dispose();
+                return;
+            }
+        }
+
+        JOptionPane.showMessageDialog(this,
+                "Main Employee Dashboard was not found. Please log in again.",
+                "Navigation Error",
+                JOptionPane.WARNING_MESSAGE);
     }
 
     private JPanel createLeaveManagementPanel() {
