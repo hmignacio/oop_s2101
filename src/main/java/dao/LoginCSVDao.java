@@ -19,8 +19,7 @@ import java.util.stream.Collectors;
  */
 public class LoginCSVDao extends MainCSVDao implements LoginDao {
 
-    // Header matching your users.csv structure
-    private static final String HEADER = "EmployeeID,Username,Password,Role";
+    private static final String HEADER = "EmployeeID,Password,Role,Status";
 
     public LoginCSVDao() {
         // Points to your specific User credentials file
@@ -38,17 +37,18 @@ public class LoginCSVDao extends MainCSVDao implements LoginDao {
             String csvId = row[0].replaceAll("[^0-9]", "");
             String csvPass = row[1].trim();
             String csvRole = row[2].trim();
+            String status = row.length >= 4 ? row[3].trim() : "ACTIVE";
         
             // Compare input vs CSV
             if (csvId.equals(inputId.trim()) && csvPass.equals(inputPass.trim())) {
-            
-            // FIX: Pass exactly 3 arguments: (ID, Password, Role)
-            return new UserAccount(csvId, csvPass, csvRole);
-            
+                if (!status.equalsIgnoreCase("ACTIVE")) {
+                    return null;
+                }
+                return new UserAccount(csvId, csvPass, csvRole, status);
+            }
         }
+        return null;
     }
-    return null; 
-}
 
     @Override
     public boolean updateRole(String employeeId, String newRole) {
@@ -66,20 +66,38 @@ public class LoginCSVDao extends MainCSVDao implements LoginDao {
         }
 
         // 3. If a change was made, save the entire list back to the CSV
-        if (isUpdated) {
-            saveAll(allAccounts); // Ensure you have a saveAll method that writes to CSV
-        }
+        return isUpdated && saveAll(allAccounts);
+    }
 
-        return isUpdated;
+    @Override
+    public boolean activateAccount(String employeeId) {
+        List<UserAccount> accounts = getAllAccounts();
+        for (UserAccount account : accounts) {
+            if (account.getEmployeeNo().trim().equals(employeeId.trim())) {
+                if (account.getStatus().equalsIgnoreCase("ACTIVE")) {
+                    return false;
+                }
+                if (!account.getStatus().equalsIgnoreCase("INACTIVE")
+                        && !account.getStatus().equalsIgnoreCase("PENDING")) {
+                    return false;
+                }
+                account.setStatus("ACTIVE");
+                return saveAll(accounts);
+            }
+        }
+        return false;
     }
     
     @Override
     public boolean addAccount(UserAccount account) {
         try {
             List<UserAccount> accounts = getAllAccounts();
+            if (accounts.stream().anyMatch(existing ->
+                    existing.getEmployeeNo().trim().equals(account.getEmployeeNo().trim()))) {
+                return false;
+            }
             accounts.add(account);
-            saveAll(accounts); // This writes to the CSV
-            return true;       // Success!
+            return saveAll(accounts);
         } catch (Exception e) {
             System.err.println("Error adding account: " + e.getMessage());
             return false;      // Failed to save
@@ -100,10 +118,7 @@ public boolean updatePassword(String username, String newPassword) {
         }
     }
     
-    if (found) {
-        saveAll(accounts);
-    }
-    return found;
+    return found && saveAll(accounts);
 }
 
     @Override
@@ -118,8 +133,7 @@ public boolean deleteAccount(String username) {
     
     // 3. Logic: If the list size decreased, something was actually deleted
     if (filteredList.size() < allAccounts.size()) {
-        saveAll(filteredList);
-        return true;
+        return saveAll(filteredList);
     }
     
     return false;
@@ -141,12 +155,12 @@ public boolean deleteAccount(String username) {
      * Internal helper to persist the list back to CSV.
      * Demonstrates encapsulation by keeping the writing logic private.
      */
-    private void saveAll(List<UserAccount> list) {
+    private boolean saveAll(List<UserAccount> list) {
         List<String> lines = list.stream()
                 .map(UserAccount::toCSVString) // Requires toCSVString() in UserAccount model
                 .collect(Collectors.toList());
         
         // Use inherited writeAllLines from MainCSVDao
-        writeAllLines(lines, HEADER);
+        return writeAllLinesChecked(lines, HEADER);
     }
 }

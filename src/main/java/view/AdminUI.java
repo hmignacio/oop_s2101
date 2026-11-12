@@ -125,15 +125,7 @@ public class AdminUI extends mainMenuFunctions {
 
         btnBack.addActionListener(e -> returnToMainDashboard());
 
-        btnLogout.addActionListener(e -> {
-            for (Window window : Window.getWindows()) {
-                if (window instanceof RegularEmployeeUI) {
-                    window.dispose();
-                }
-            }
-            this.dispose();
-            new LoginFrame().setVisible(true);
-        });
+        btnLogout.addActionListener(e -> logout());
 
         this.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
@@ -184,6 +176,10 @@ public class AdminUI extends mainMenuFunctions {
                 if (leaveDao.updateStatus(id, status)) {
                     JOptionPane.showMessageDialog(this, "Request " + status + " successfully.");
                     refreshLeaveTable();
+                } else {
+                    JOptionPane.showMessageDialog(this,
+                            "Could not update the request. It may already be processed or the CSV file could not be saved.",
+                            "Leave Request Update Failed", JOptionPane.ERROR_MESSAGE);
                 }
             }
         } else {

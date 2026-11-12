@@ -29,16 +29,22 @@ public class ITUI extends mainMenuFunctions {
     private final LoginDao loginDao;
     private final EmployeeDao employeeDao;
     private final Employee currentUser;
+    private final RegularEmployeeUI employeeDashboard;
 
     private JButton btnResetPass;
     private JButton btnChangeRole;
-    private JButton btnCreateAccount;
+    private JButton btnActivateAccount;
     private JButton btnDeleteAcc;
     private JLabel lblTitle;
 
     public ITUI(Employee emp) {
+        this(emp, null);
+    }
+
+    public ITUI(Employee emp, RegularEmployeeUI employeeDashboard) {
         super("MotorPH - IT System Administration");
         this.currentUser = emp;
+        this.employeeDashboard = employeeDashboard;
         this.loginDao = new LoginCSVDao();
         this.employeeDao = new EmployeeCSVDao();
         initUI();
@@ -57,6 +63,7 @@ public class ITUI extends mainMenuFunctions {
         lblTitle.setFont(new Font("SansSerif", Font.BOLD, 18));
         lblTitle.setPreferredSize(new Dimension(0, 50));
         header.add(lblTitle, BorderLayout.WEST);
+
         add(header, BorderLayout.NORTH);
 
         // --- 2. Table ---
@@ -77,14 +84,14 @@ public class ITUI extends mainMenuFunctions {
             BorderFactory.createEmptyBorder(10, 15, 10, 15)
         );
 
-        btnCreateAccount = new JButton("Create New Account");
+        btnActivateAccount = new JButton("Activate Account");
         btnResetPass = new JButton("Reset Password");
         btnChangeRole = new JButton("Update Role");
         btnDeleteAcc = new JButton("Delete Account");
-        JButton btnRefresh = new JButton("Refresh List");
+        JButton btnRefresh = new JButton("Refresh");
         JButton btnBack = new JButton("Back to Main Dashboard");
 
-        styleITButton(btnCreateAccount, new Color(46, 204, 113));
+        styleITButton(btnActivateAccount, new Color(46, 204, 113));
         styleITButton(btnResetPass, new Color(9, 132, 227));
         styleITButton(btnChangeRole, new Color(108, 92, 231));
         styleITButton(btnDeleteAcc, new Color(178, 34, 34));
@@ -103,7 +110,7 @@ public class ITUI extends mainMenuFunctions {
         btnBack.addActionListener(e -> returnToMainDashboard());
         btnResetPass.addActionListener(e -> resetPasswordLogic());
         btnChangeRole.addActionListener(e -> updateRoleLogic());
-        btnCreateAccount.addActionListener(e -> createAccountLogic());
+        btnActivateAccount.addActionListener(e -> activateAccountLogic());
         btnDeleteAcc.addActionListener(e -> deleteAccountLogic());
         
         
@@ -119,6 +126,13 @@ public class ITUI extends mainMenuFunctions {
     }
 
     private void returnToMainDashboard() {
+        if (employeeDashboard != null && employeeDashboard.isDisplayable()) {
+            employeeDashboard.setVisible(true);
+            employeeDashboard.toFront();
+            this.dispose();
+            return;
+        }
+
         for (Window window : Window.getWindows()) {
             if (window instanceof RegularEmployeeUI && window.isDisplayable()) {
                 window.setVisible(true);
@@ -142,7 +156,7 @@ public class ITUI extends mainMenuFunctions {
     public void disableEditing() {
         if (btnResetPass != null) btnResetPass.setVisible(false);
         if (btnChangeRole != null) btnChangeRole.setVisible(false);
-        if (btnCreateAccount != null) btnCreateAccount.setVisible(false);
+        if (btnActivateAccount != null) btnActivateAccount.setVisible(false);
         if (btnDeleteAcc != null) btnDeleteAcc.setVisible(false);
         if (lblTitle != null) {
             lblTitle.setText("  SYSTEM VIEW (READ-ONLY OVERSIGHT)");
@@ -366,5 +380,11 @@ public class ITUI extends mainMenuFunctions {
         btn.setOpaque(true);
         btn.setBorderPainted(false);
         btn.setFont(new Font("SansSerif", Font.BOLD, 12));
+    }
+
+    private void styleDashboardActionButton(JButton button) {
+        button.setFocusPainted(false);
+        button.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
     }
 }

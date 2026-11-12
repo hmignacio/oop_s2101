@@ -39,6 +39,9 @@ public class RegularEmployeeUI extends mainMenuFunctions {
     private JTable attendanceTable;
     private JButton btnTimeIn, btnTimeOut;
     private JLabel lblClock;
+    private Timer clockTimer;
+    private LeaveRequestFrame leaveRequestFrame;
+    private OvertimeRequestFrame overtimeRequestFrame;
 
     public RegularEmployeeUI(Employee emp, String role) {
         super("MotorPH - Employee Portal");
@@ -65,7 +68,7 @@ public class RegularEmployeeUI extends mainMenuFunctions {
         lblClock.setFont(new Font("Monospaced", Font.BOLD, 16));
         updateClock();
         
-        Timer clockTimer = new Timer(1000, e -> updateClock());
+        clockTimer = new Timer(1000, e -> updateClock());
         clockTimer.start();
 
         welcomePanel.add(lblName);
@@ -79,30 +82,38 @@ public class RegularEmployeeUI extends mainMenuFunctions {
 
         btnTimeIn = new JButton("Time-In");
         btnTimeOut = new JButton("Time-Out");
-        JButton btnApplyLeave = new JButton("Apply for Leave");
+        JButton btnLeaveRequest = new JButton("Leave Request");
         JButton btnLeaveHistory = new JButton("My Leave History");
+        JButton btnMyDetails = new JButton("My Details");
         JButton btnViewPayslip = new JButton("View Monthly Payslip");
+        JButton btnOvertimeRequest = new JButton("Overtime Request");
         JButton btnLogout = new JButton("Logout");
 
-        styleSidebarButton(btnTimeIn, new Color(34, 139, 34));   
-        styleSidebarButton(btnTimeOut, new Color(178, 34, 34));  
-        styleSidebarButton(btnApplyLeave, new Color(70, 130, 180)); 
-        styleSidebarButton(btnLeaveHistory, new Color(60, 179, 113));
-        styleSidebarButton(btnViewPayslip, new Color(25, 25, 112)); 
-        styleSidebarButton(btnLogout, new Color(100, 100, 100)); 
+        styleSidebarButton(btnTimeIn, new Color(0x16A34A));
+        styleSidebarButton(btnTimeOut, new Color(0xB91C1C));
+        styleSidebarButton(btnOvertimeRequest, new Color(0x2563EB));
+        styleSidebarButton(btnLeaveRequest, new Color(0x0D9488));
+        styleSidebarButton(btnViewPayslip, new Color(0x191970));
+        styleSidebarButton(btnLeaveHistory, new Color(0x0284C7));
+        styleSidebarButton(btnMyDetails, new Color(0x475569));
+        styleSidebarButton(btnLogout, new Color(0x374151));
 
-        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
+        sidebar.add(Box.createRigidArea(new Dimension(0, 6)));
         sidebar.add(btnTimeIn);
-        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
+        sidebar.add(Box.createRigidArea(new Dimension(0, 4)));
         sidebar.add(btnTimeOut);
-        sidebar.add(Box.createRigidArea(new Dimension(0, 20)));
-        sidebar.add(btnApplyLeave);
         sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
-        sidebar.add(btnLeaveHistory);
-        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
+        sidebar.add(btnOvertimeRequest);
+        sidebar.add(Box.createRigidArea(new Dimension(0, 4)));
+        sidebar.add(btnLeaveRequest);
+        sidebar.add(Box.createRigidArea(new Dimension(0, 4)));
         sidebar.add(btnViewPayslip);
+        sidebar.add(Box.createRigidArea(new Dimension(0, 4)));
+        sidebar.add(btnLeaveHistory);
+        sidebar.add(Box.createRigidArea(new Dimension(0, 4)));
+        sidebar.add(btnMyDetails);
         addRoleSpecificButtons(sidebar);
-        sidebar.add(Box.createVerticalGlue());
+        sidebar.add(Box.createRigidArea(new Dimension(0, 4)));
         sidebar.add(btnLogout);
 
        
@@ -118,16 +129,100 @@ public class RegularEmployeeUI extends mainMenuFunctions {
         btnTimeIn.addActionListener(e -> recordPunch("IN"));
         btnTimeOut.addActionListener(e -> recordPunch("OUT"));
         
-        // Connects to the LeaveRequestFrame we fixed
-        btnApplyLeave.addActionListener(e -> {
-            new LeaveRequestFrame(currentEmployee.getEmployeeNumber()).setVisible(true);
-        });
+        btnLeaveRequest.addActionListener(e -> openLeaveRequestForm());
         
         btnLeaveHistory.addActionListener(e -> showLeaveHistory());
+        btnMyDetails.addActionListener(e -> showMyDetails());
         btnViewPayslip.addActionListener(e -> handlePayslipSelection());
-        btnLogout.addActionListener(e -> { this.dispose(); new LoginFrame().setVisible(true); });
+        btnOvertimeRequest.addActionListener(e -> openOvertimeRequestForm());
+        btnLogout.addActionListener(e -> logout());
 
         checkAttendanceStatus(); 
+    }
+
+    @Override
+    public void dispose() {
+        if (clockTimer != null) {
+            clockTimer.stop();
+        }
+        super.dispose();
+    }
+
+    private void openLeaveRequestForm() {
+        try {
+            if (leaveRequestFrame == null || !leaveRequestFrame.isDisplayable()) {
+                leaveRequestFrame = new LeaveRequestFrame(currentEmployee.getEmployeeNumber());
+            }
+            showRequestForm(leaveRequestFrame);
+        } catch (RuntimeException exception) {
+            showRequestFormError("Leave Request", exception);
+        }
+    }
+
+    private void openOvertimeRequestForm() {
+        try {
+            if (overtimeRequestFrame == null || !overtimeRequestFrame.isDisplayable()) {
+                overtimeRequestFrame = new OvertimeRequestFrame(currentEmployee.getEmployeeNumber());
+            }
+            showRequestForm(overtimeRequestFrame);
+        } catch (RuntimeException exception) {
+            showRequestFormError("Overtime Request", exception);
+        }
+    }
+
+    private void showRequestForm(JFrame form) {
+        form.setLocationRelativeTo(this);
+        form.setVisible(true);
+        form.toFront();
+        form.requestFocus();
+    }
+
+    private void showRequestFormError(String formName, RuntimeException exception) {
+        System.err.println("Unable to open " + formName + " form.");
+        exception.printStackTrace(System.err);
+        String failureReason = exception.getMessage();
+        if (failureReason == null || failureReason.trim().isEmpty()) {
+            failureReason = exception.getClass().getSimpleName();
+        } else {
+            failureReason = exception.getClass().getSimpleName() + ": " + failureReason;
+        }
+        JOptionPane.showMessageDialog(this,
+                "The " + formName + " form could not be opened.\n\nReason: " + failureReason,
+                formName + " Error", JOptionPane.ERROR_MESSAGE);
+    }
+
+    private void showMyDetails() {
+        JDialog detailsDialog = new JDialog(this, "My Details", Dialog.ModalityType.APPLICATION_MODAL);
+        detailsDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+
+        JPanel detailsPanel = new JPanel(new GridLayout(0, 2, 10, 10));
+        detailsPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        addProfileDetail(detailsPanel, "Employee ID:", currentEmployee.getEmployeeNumber());
+        addProfileDetail(detailsPanel, "First Name:", currentEmployee.getFirstName());
+        addProfileDetail(detailsPanel, "Last Name:", currentEmployee.getLastName());
+        addProfileDetail(detailsPanel, "Birthday:", currentEmployee.getBirthday());
+        addProfileDetail(detailsPanel, "Address:", currentEmployee.getAddress());
+        addProfileDetail(detailsPanel, "Phone Number:", currentEmployee.getPhoneNumber());
+        addProfileDetail(detailsPanel, "Email:", currentEmployee.getEmail());
+
+        JButton btnClose = new JButton("Close");
+        btnClose.addActionListener(e -> detailsDialog.dispose());
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        actions.add(btnClose);
+
+        detailsDialog.add(detailsPanel, BorderLayout.CENTER);
+        detailsDialog.add(actions, BorderLayout.SOUTH);
+        detailsDialog.pack();
+        detailsDialog.setLocationRelativeTo(this);
+        detailsDialog.setVisible(true);
+    }
+
+    private void addProfileDetail(JPanel panel, String label, String value) {
+        panel.add(new JLabel(label));
+        JTextField valueField = new JTextField(value == null ? "" : value);
+        valueField.setEditable(false);
+        valueField.setFocusable(false);
+        panel.add(valueField);
     }
 
     private void updateClock() {
@@ -196,109 +291,36 @@ public class RegularEmployeeUI extends mainMenuFunctions {
             if (filteredLogs.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "No records found for the selected period.");
             } else {
-                // --- 1. EARNINGS CALCULATIONS ---
-                double totalHours = new PayrollService().calculateTotalHours(filteredLogs);
-                double hourlyRate = currentEmployee.getHourlyRate();
-                double grossBasic = totalHours * hourlyRate;
-                
-                double rice = currentEmployee.getRiceSubsidy();
-                double phone = currentEmployee.getPhoneAllowance();
-                double clothing = currentEmployee.getClothingAllowance();
-                double totalAllowances = rice + phone + clothing;
-
-                // --- 2. DEDUCTIONS (Example standard formulas) ---
-                // You can replace these with calls to your PayrollService if you have them defined there
-                double sss = (grossBasic > 24750) ? 1125.00 : grossBasic * 0.045; 
-                double philhealth = grossBasic * 0.025;
-                double pagibig = 100.00;
-                double totalDeductions = sss + philhealth + pagibig;
-                
-                double netTakeHome = (grossBasic + totalAllowances) - totalDeductions;
-
-                // --- 3. FORMATTING ---
-                java.text.DecimalFormat df = new java.text.DecimalFormat("#,##0.00");
-                String selectedMonthName = months[selMonth - 1];
-
-                // --- 4. BUILD READ-ONLY HTML VIEW WITH DEDUCTIONS ---
-                String payslipHtml = "<html><body style='width: 320px; font-family: sans-serif;'>"
-                        + "<div style='text-align: center; background-color: #191970; color: white; padding: 10px;'>"
-                        + "<h2 style='margin:0;'>MotorPH</h2>"
-                        + "<p style='margin:0;'>Monthly Payslip: " + selectedMonthName + " " + selYear + "</p></div>"
-                        + "<br><b>Employee:</b> " + currentEmployee.getFirstName() + " " + currentEmployee.getLastName()
-                        + "<br><b>Position:</b> " + currentEmployee.getPosition()
-                        + "<hr>"
-                        + "<b>Earnings:</b>"
-                        + "<table style='width: 100%; font-size: 11px;'>"
-                        + "<tr><td>Hours (" + df.format(totalHours)
-                        + ") x Rate (" + df.format(hourlyRate)
-                        + "):</td><td style='text-align: right;'>"
-                        + df.format(grossBasic) + "</td></tr>"
-                        + "<tr><td>Allowances (Rice/Phone/Cloth):</td><td style='text-align: right;'>" + df.format(totalAllowances) + "</td></tr>"
-                        + "<tr><td><b>Total Gross:</b></td><td style='text-align: right;'><b>PHP " + df.format(grossBasic + totalAllowances) + "</b></td></tr>"
-                        + "</table>"
-                        + "<br><b style='color: #b22222;'>Deductions:</b>"
-                        + "<table style='width: 100%; font-size: 11px; color: #b22222;'>"
-                        + "<tr><td>SSS Contribution:</td><td style='text-align: right;'>(" + df.format(sss) + ")</td></tr>"
-                        + "<tr><td>PhilHealth:</td><td style='text-align: right;'>(" + df.format(philhealth) + ")</td></tr>"
-                        + "<tr><td>Pag-IBIG:</td><td style='text-align: right;'>(" + df.format(pagibig) + ")</td></tr>"
-                        + "<tr><td><b>Total Deductions:</b></td><td style='text-align: right;'><b>PHP (" + df.format(totalDeductions) + ")</b></td></tr>"
-                        + "</table>"
-                        + "<div style='margin-top: 15px; padding: 12px; background-color: #f4f4f9; text-align: center; border: 2px solid #191970;'>"
-                        + "<span style='font-size: 12px;'><b>NET TAKE-HOME:</b></span><br>"
-                        + "<span style='font-size: 22px; color: #006400;'><b>PHP " + df.format(netTakeHome) + "</b></span>"
-                        + "</div>"
-                        + "<p style='font-size: 9px; text-align: center; color: #888;'>Generated for Employee ID: " + currentEmployee.getEmployeeNumber() + "</p>"
-                        + "</body></html>";
-
-                // Create HTML payslip viewer
-                JEditorPane payslipViewer = new JEditorPane();
-                payslipViewer.setContentType("text/html");
-                payslipViewer.setText(payslipHtml);
-                payslipViewer.setEditable(false);
-                payslipViewer.setCaretPosition(0);
-
-                // Set preferred size
-                payslipViewer.setPreferredSize(new Dimension(420, 520));
-
-                // Add scroll pane
+                PayrollService payrollService = new PayrollService();
+                double totalHours = payrollService.calculateTotalHours(filteredLogs);
+                PayrollService.PayrollBreakdown breakdown =
+                        payrollService.calculatePayroll(currentEmployee, totalHours);
+                JEditorPane payslipViewer = PayslipRenderer.createPayslip(
+                        currentEmployee, breakdown, selMonth, selYear);
                 JScrollPane scrollPane = new JScrollPane(payslipViewer);
-                scrollPane.setPreferredSize(new Dimension(440, 540));
+                scrollPane.setPreferredSize(new Dimension(560, 620));
 
-                // Create buttons
                 JButton btnPrint = new JButton("Print Payslip");
                 JButton btnClose = new JButton("Close");
-
-                // Create custom dialog
                 JDialog payslipDialog = new JDialog(
                     SwingUtilities.getWindowAncestor(this),
                     "Official Payslip Summary",
                     Dialog.ModalityType.APPLICATION_MODAL
                 );
-
                 payslipDialog.setLayout(new BorderLayout());
-
-                // Add payslip content
+                payslipDialog.setResizable(true);
                 payslipDialog.add(scrollPane, BorderLayout.CENTER);
-
-                // Create button panel
-                JPanel buttonPanel = new JPanel(
-                    new FlowLayout(FlowLayout.CENTER, 10, 10)
-                );
-
+                JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
                 buttonPanel.add(btnPrint);
                 buttonPanel.add(btnClose);
-
                 payslipDialog.add(buttonPanel, BorderLayout.SOUTH);
 
-                // Print button action
                 btnPrint.addActionListener(e -> {
                     try {
-                        boolean printed = payslipViewer.print();
-
-                        if (printed) {
+                        if (payslipViewer.print()) {
                             JOptionPane.showMessageDialog(
                                 payslipDialog,
-                                "Payslip sent to printer successfully!",
+                                "Payslip sent to printer successfully.",
                                 "Print Payslip",
                                 JOptionPane.INFORMATION_MESSAGE
                             );
@@ -313,11 +335,7 @@ public class RegularEmployeeUI extends mainMenuFunctions {
                         );
                     }
                 });
-
-                // Close button action
                 btnClose.addActionListener(e -> payslipDialog.dispose());
-
-                // Configure dialog
                 payslipDialog.pack();
                 payslipDialog.setLocationRelativeTo(this);
                 payslipDialog.setVisible(true);
@@ -370,13 +388,34 @@ public class RegularEmployeeUI extends mainMenuFunctions {
     }
 
     private void styleSidebarButton(JButton btn, Color c) {
-        btn.setMaximumSize(new Dimension(200, 40)); 
+        Dimension buttonSize = new Dimension(200, 36);
+        btn.setPreferredSize(buttonSize);
+        btn.setMinimumSize(buttonSize);
+        btn.setMaximumSize(buttonSize);
         btn.setAlignmentX(Component.CENTER_ALIGNMENT);
-        btn.setBackground(c); 
-        btn.setForeground(Color.WHITE); 
+        btn.setBackground(c);
+        btn.setForeground(Color.WHITE);
         btn.setFont(new Font("SansSerif", Font.BOLD, 12));
-        btn.setOpaque(true); 
+        btn.setOpaque(true);
         btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        Color hoverColor = new Color(
+                (int) (c.getRed() * 0.88),
+                (int) (c.getGreen() * 0.88),
+                (int) (c.getBlue() * 0.88));
+        btn.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent event) {
+                if (btn.isEnabled()) {
+                    btn.setBackground(hoverColor);
+                }
+            }
+
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent event) {
+                btn.setBackground(c);
+            }
+        });
     }
     
     // Show additional management access for authorized roles.
@@ -407,7 +446,7 @@ public class RegularEmployeeUI extends mainMenuFunctions {
             case "IT":
                 managementButton = new JButton("IT Management");
                 managementButton.addActionListener(e -> {
-                    ITUI itDashboard = new ITUI(currentEmployee);
+                    ITUI itDashboard = new ITUI(currentEmployee, this);
                     itDashboard.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
                     itDashboard.setVisible(true);
                     this.setVisible(false);
@@ -428,8 +467,8 @@ public class RegularEmployeeUI extends mainMenuFunctions {
                 return; // Regular employees have no management button.
         }
 
-        styleSidebarButton(managementButton, new Color(70, 70, 120));
-        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
+        styleSidebarButton(managementButton, new Color(0x6D4CC3));
+        sidebar.add(Box.createRigidArea(new Dimension(0, 4)));
         sidebar.add(managementButton);
     }
 }

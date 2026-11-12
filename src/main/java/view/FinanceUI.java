@@ -83,7 +83,6 @@ public class FinanceUI extends mainMenuFunctions {
                 JOptionPane.showMessageDialog(this, Constants.NO_SELECTION_ERROR);
             }
         });
-
         
         // Return to Main Dashboard when X is clicked
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
@@ -94,8 +93,8 @@ public class FinanceUI extends mainMenuFunctions {
                 returnToMainDashboard();
             }
         });
-    }
 
+    }
         private void returnToMainDashboard() {
         for (Window window : Window.getWindows()) {
             if (window instanceof RegularEmployeeUI && window.isDisplayable()) {
@@ -173,7 +172,8 @@ public class FinanceUI extends mainMenuFunctions {
                         "No records found for " + monthCombo.getSelectedItem() + " " + selYear);
             } else {
                 double actualHours = payrollService.calculateTotalHours(filtered);
-                new PayslipFrame(emp, actualHours).setVisible(true);
+                new PayslipFrame(emp, payrollService.calculatePayroll(emp, actualHours),
+                        selMonth, selYear).setVisible(true);
             }
         }
     }

@@ -14,6 +14,7 @@ public class Constants {
     public static final String EMPLOYEE_CSV_PATH = "src/main/java/resources/employee.csv";
     public static final String ATTENDANCE_CSV_PATH = "src/main/java/resources/attendance.csv";
     public static final String LEAVE_CSV_PATH = "src/main/java/resources/leaves.csv";
+    public static final String OVERTIME_CSV_PATH = "src/main/java/resources/overtime_requests.csv";
     // --- 1. Pay Rates & Multipliers ---
     // Note: These are fallback values; PayrollService uses the Employee object data first.
     public static final double OVERTIME_RATE_MULTIPLIER = 1.25;
