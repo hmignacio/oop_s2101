@@ -97,7 +97,7 @@ public class ITUI extends mainMenuFunctions {
         styleITButton(btnDeleteAcc, new Color(178, 34, 34));
         styleITButton(btnBack, new Color(70, 70, 120));
 
-        controlPanel.add(btnCreateAccount);
+        controlPanel.add(btnActivateAccount);
         controlPanel.add(btnResetPass);
         controlPanel.add(btnChangeRole);
         controlPanel.add(btnDeleteAcc);
@@ -195,7 +195,7 @@ public class ITUI extends mainMenuFunctions {
     }
 
     
-        private void createAccountLogic() {
+        private void activateAccountLogic() {
             int row = userTable.getSelectedRow();
 
             if (row == -1) {
