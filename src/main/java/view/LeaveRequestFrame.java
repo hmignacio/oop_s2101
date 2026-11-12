@@ -19,6 +19,7 @@ import java.awt.*;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
+import java.time.format.DateTimeFormatter;
 
 public class LeaveRequestFrame extends JFrame {
     private final String employeeId;
@@ -180,11 +181,15 @@ public class LeaveRequestFrame extends JFrame {
                 }
 
                 try {
-                    LocalDate existingStart =
-                        LocalDate.parse(existing.getStartDate());
+                    DateTimeFormatter csvDateFormat = DateTimeFormatter.ofPattern("MM-dd-yyyy");
 
-                    LocalDate existingEnd =
-                        LocalDate.parse(existing.getEndDate());
+                    LocalDate existingStart = LocalDate.parse(
+                        existing.getStartDate(), csvDateFormat
+                    );
+
+                    LocalDate existingEnd = LocalDate.parse(
+                        existing.getEndDate(), csvDateFormat
+                    );
 
                     // Check for overlapping leave dates
                     boolean overlaps =
@@ -214,6 +219,10 @@ public class LeaveRequestFrame extends JFrame {
         String rId = "LR-" +
             UUID.randomUUID().toString()
                 .substring(0, 4).toUpperCase();
+        
+        // Format dates as MM-dd-yyyy before saving to CSV
+        DateTimeFormatter csvDateFormat = DateTimeFormatter.ofPattern("MM-dd-yyyy");
+
 
         // 7. CREATE LEAVE REQUEST
         // Preserve the complete reason, including commas
@@ -221,8 +230,8 @@ public class LeaveRequestFrame extends JFrame {
             rId,
             employeeId,
             type,
-            start.toString(),
-            end.toString(),
+            start.format(csvDateFormat),
+            end.format(csvDateFormat),
             "Pending",
             reason
         );
